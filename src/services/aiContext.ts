@@ -11,6 +11,7 @@ import { planNutrition } from '../domain/dietPlan';
 import { GOAL_KEYS, ORIGIN_LABELS } from '../domain/goals';
 import { sumNutrients } from '../domain/nutrients';
 import { weeklyActivity, weekStart } from '../domain/activities';
+import { searchFoods } from '../domain/foodSearch';
 import { MEAL_LABELS, MEAL_ORDER, type ActivityLog, type BodyAssessment, type DiaryEntry, type DietPlan, type Food, type GoalSet, type Profile, type WaterLog } from '../domain/types';
 
 export interface ContextInput {
@@ -149,12 +150,14 @@ export function localAnswer(question: string, i: ContextInput, foods: Food[]): s
   }
   const versus = q.match(/(?:mais prote[ií]na)[:\s]*([\p{L} ]+?)\s+ou\s+([\p{L} ]+)\??$/u);
   if (versus) {
-    const pick = (term: string) => foods.find((f) => f.aliases.some((a) => a === term.trim()) || f.name.toLowerCase().startsWith(term.trim()));
+    const pick = (term: string) => searchFoods(foods, term.trim(), 1)[0]?.food;
     const a = pick(versus[1]);
     const b = pick(versus[2]);
     if (a && b && a.per100.protein_g != null && b.per100.protein_g != null) {
       const winner = a.per100.protein_g >= b.per100.protein_g ? a : b;
-      return `Por 100 g (TACO): ${a.name} tem ${a.per100.protein_g} g de proteína e ${a.per100.energy_kcal ?? '—'} kcal; ${b.name} tem ${b.per100.protein_g} g e ${b.per100.energy_kcal ?? '—'} kcal. Mais proteína: ${winner.name}.`;
+      const src = (f: Food) => (f.source === 'taco' ? 'TACO' : f.source);
+      const br = (v: number) => String(v).replace('.', ',');
+      return `Por 100 g: ${a.name} (${src(a)}) tem ${br(a.per100.protein_g)} g de proteína e ${a.per100.energy_kcal ?? '—'} kcal; ${b.name} (${src(b)}) tem ${br(b.per100.protein_g)} g e ${b.per100.energy_kcal ?? '—'} kcal. Mais proteína: ${winner.name}. Compare também o preparo e a porção que você consome.`;
     }
   }
   return null;

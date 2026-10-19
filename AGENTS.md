@@ -1,3 +1,14 @@
+# Meu Equilíbrio — notas para agentes
+
+- Regras de negócio ficam em `src/domain` (funções puras, sem React). Toda regra nova precisa de teste em `src/domain/__tests__` ou `src/services/__tests__`.
+- `null` = "não informado". Nunca converta ausência em zero; somas usam `sumNutrients` (conta itens sem dado).
+- Números nutricionais vêm de fontes (TACO, rótulo, OFF, USDA). A IA apenas extrai/identifica; nada extraído é salvo sem tela de conferência.
+- Metas: prioridade profissional > usuário > sistema (`mergeSystemSuggestions`, `setTarget`). Planos `locked` não podem ser alterados por automações.
+- Persistência sempre via `DataStore` (`useStore`, `useCollection`); não acesse AsyncStorage/Supabase direto nas telas.
+- Esquema do banco em `supabase/migrations` (snake_case, RLS por `user_id`). Ao mudar o esquema, atualize os tipos em `src/domain/types.ts` e rode `npm run test:db`.
+- Edge Functions em `supabase/functions` (Deno); checagem: `deno check --config deno.json */index.ts`.
+- Antes de concluir: `npm run check` (tipos, lint, testes) e, para telas, `npm run test:e2e`.
+
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
 ## Expo has changed — do not trust your training data
