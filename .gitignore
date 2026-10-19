@@ -48,3 +48,4 @@ yarn-error.*
 # supabase
 supabase/.temp/
 supabase/.branches/
+tests/e2e/screenshots/

@@ -59,3 +59,17 @@ export function formatDateBR(d: ISODate | Date): string {
 export function weekdayLabel(index: number): string {
   return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][index];
 }
+
+/** "DD/MM/AAAA" -> "AAAA-MM-DD" (null se inválida). */
+export function parseBRDate(text: string): ISODate | null {
+  const m = text.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const [d, mo, y] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const date = new Date(y, mo - 1, d);
+  if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d) return null;
+  return toISODate(date);
+}
+
+export function isValidTime(t: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
+}

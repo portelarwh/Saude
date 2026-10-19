@@ -61,6 +61,17 @@ export interface Profile extends BaseRow {
   onboarding_completed: boolean;
   consent_health_data_at: ISODateTime | null;
   consent_ai_at: ISODateTime | null;
+  settings: AppSettings | null;
+}
+
+export interface AppSettings {
+  theme?: 'system' | 'light' | 'dark';
+  /** Bebidas que contam para a meta de líquidos. */
+  counted_beverages?: Partial<Record<Beverage, boolean>>;
+  /** Percentual das calorias de exercício devolvido à meta do dia (padrão 0). */
+  exercise_credit_pct?: number;
+  /** Incluir observações de saúde no contexto enviado à IA. */
+  ai_include_health_notes?: boolean;
 }
 
 export type GoalOrigin = 'system' | 'user' | 'professional';

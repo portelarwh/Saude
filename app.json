@@ -1,29 +1,66 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
-    "version": "1.0.0",
+    "name": "Meu Equilíbrio",
+    "slug": "meu-equilibrio",
+    "scheme": "meuequilibrio",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "br.app.meuequilibrio"
     },
     "android": {
+      "package": "br.app.meuequilibrio",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#DCEEE2",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "RECORD_AUDIO"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Meu Equilíbrio",
+      "shortName": "Equilíbrio",
+      "lang": "pt-BR",
+      "themeColor": "#1C5E3F",
+      "backgroundColor": "#F4F7F3"
     },
     "plugins": [
       "expo-router",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O Meu Equilíbrio usa a câmera para ler códigos de barras e fotografar rótulos e exames.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite escolher fotos de rótulos, exames e planos alimentares.",
+          "cameraPermission": "O Meu Equilíbrio usa a câmera para fotografar rótulos e exames."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#1C5E3F"
+        }
+      ]
     ]
   }
 }

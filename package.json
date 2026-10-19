@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/metro-runtime": "~58.0.14",
+    "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.118.0",
     "expo": "~58.0.14",
@@ -32,9 +33,13 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/react": "~19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~58.0.4",
     "jest": "^30.5.2",
-    "typescript": "~6.0.3",
-    "jest-expo": "~58.0.11"
+    "jest-expo": "~58.0.11",
+    "playwright": "^1.64.1",
+    "serve-handler": "^6.1.7",
+    "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
@@ -45,7 +50,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "export:web": "expo export --platform web",
-    "import:taco": "python3 scripts/import_taco.py"
+    "import:taco": "python3 scripts/import_taco.py",
+    "test:db": "bash scripts/test-db.sh",
+    "test:e2e": "node tests/e2e/run.js",
+    "check": "npm run typecheck && npm run lint && npm test"
   },
   "private": true,
   "jest": {
