@@ -1,0 +1,39 @@
+# Configuração para o Supabase CLI (supabase start / supabase db push / supabase functions deploy)
+project_id = "meu-equilibrio"
+
+[api]
+schemas = ["public"]
+
+[db]
+major_version = 16
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed/reference_foods_taco.sql"]
+
+[auth]
+site_url = "meuequilibrio://"
+additional_redirect_urls = ["http://localhost:8081"]
+enable_signup = true
+minimum_password_length = 8
+
+[auth.email]
+enable_confirmations = true
+
+[storage]
+file_size_limit = "20MiB"
+
+[functions.ai-parse-meal]
+import_map = "./functions/import_map.json"
+[functions.ai-extract-label]
+import_map = "./functions/import_map.json"
+[functions.ai-extract-bioimpedance]
+import_map = "./functions/import_map.json"
+[functions.ai-import-diet]
+import_map = "./functions/import_map.json"
+[functions.ai-chat]
+import_map = "./functions/import_map.json"
+[functions.food-search-usda]
+import_map = "./functions/import_map.json"
+[functions.delete-account]
+import_map = "./functions/import_map.json"
