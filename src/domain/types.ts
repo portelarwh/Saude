@@ -121,6 +121,7 @@ export type SupplementCategory =
   | 'protein_bar'
   | 'protein_drink'
   | 'multivitamin'
+  | 'vitamin_mineral'
   | 'other';
 
 export interface Food {

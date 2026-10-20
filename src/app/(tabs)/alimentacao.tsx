@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { confirmAction } from '../../ui/confirm';
 import { addDays, formatDateBR } from '../../domain/dates';
+import { formatCompounds } from '../../domain/compounds';
 import { copyEntries } from '../../domain/entries';
 import { planAdherence } from '../../domain/dietPlan';
 import { scalePer100, sumNutrients } from '../../domain/nutrients';
@@ -103,7 +104,7 @@ export default function Diary() {
                 <ListItem
                   key={e.id}
                   title={e.food_name}
-                  subtitle={`${num(e.amount)} ${e.unit} · ${num(e.nutrients.energy_kcal)} kcal · ${num(e.nutrients.protein_g, 1)} g prot.${e.compounds?.creatine_g ? ` · creatina ${num(e.compounds.creatine_g, 1)} g` : ''}`}
+                  subtitle={`${num(e.amount)} ${e.unit} · ${num(e.nutrients.energy_kcal)} kcal · ${num(e.nutrients.protein_g, 1)} g prot.${e.compounds ? ` · ${formatCompounds(e.compounds)}` : ''}`}
                   onPress={() => {
                     setEditing(e);
                     setAmount(e.amount);

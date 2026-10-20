@@ -40,6 +40,7 @@ Nada está **simulado**: não há telas de demonstração com dados falsos. Onde
 | 7 | Copiar refeição anterior / replicar em outro dia | ✅ | "Repetir de ontem" e "Copiar para amanhã" |
 | 8 | Suplementos: categorias, doses, horários, misturas | ✅ | |
 | 8 | Proteína do suplemento somada ao dia; creatina fora da proteína | ✅ | Validação impede cadastro de creatina como proteína |
+| 8 | Vitaminas e minerais (ex.: B12 2500 mcg) | ✅ | Compostos com unidade (g, mg, mcg, UI) somados à parte; opção "sem calorias nem macros" — não alteram metas nem totais; "Vit B12 2500mcg" na frase vira 1 dose |
 | 8 | Pré-cadastro de produtos de marcas (Growth, DUX…) | ⬜ | **Intencional**: sem rótulos verificados, seria apresentar dados não conferidos. Marcas listadas; cadastro por rótulo |
 | 9 | Painel de água, botões rápidos, recipientes, bebidas que contam | ✅ | |
 | 9 | Histórico por horário, 7 e 30 dias | ✅ | |
@@ -52,6 +53,7 @@ Nada está **simulado**: não há telas de demonstração com dados falsos. Onde
 | 11 | Health Connect / dispositivos | ⬜ | Fase 4 |
 | 12 | Chat com dados do usuário | 🟡 | Contexto calculado no app; busca na base no servidor; histórico salvo |
 | 12 | Respostas sem IA para perguntas frequentes | ✅ | Proteína/água restantes, manhãs, evolução de gordura, comparação de proteína |
+| 12 | IA externa por copiar e colar (Claude, ChatGPT, Gemini), sem chave de API | ✅ | Chat, frase, rótulo, exame e dieta. O app copia a pergunta (com instruções e formato JSON), abre o site/app e interpreta a resposta colada com os mesmos esquemas da IA integrada; sempre passa pela conferência. Nutrientes continuam vindo da base |
 | 13 | Importar dieta (foto/PDF/texto) e separar alternativas | 🟡 IA / ✅ texto local | Alternativas não são somadas (testado ponta a ponta) |
 | 13 | Calorias e macros por refeição, total, comparação com metas, pontos de atenção | ✅ | |
 | 13 | Plano prescrito bloqueado; adesão diária | ✅ | Bloqueio também no banco (gatilho) |

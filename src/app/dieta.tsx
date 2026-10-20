@@ -11,7 +11,9 @@ import { MEAL_LABELS, type DiaryEntry, type DietPlan, type MealType } from '../d
 import type { NewRow } from '../data/store';
 import { aiImportDiet } from '../services/ai';
 import { pickDocument, uploadPrivateFile } from '../services/files';
+import { buildExternalPrompt, parseExternalDiet } from '../services/externalAi';
 import { dietImportToPlan } from '../services/imports';
+import { ExternalAiPanel } from '../ui/ExternalAi';
 import { useApp, useStore } from '../state/AppProvider';
 import { useAllFoods, useCollection, useGoals, useProfile, useToday } from '../state/hooks';
 import { Badge, Button, Card, Chip, Divider, Field, Notice, Row, Screen, SectionHeader, T, Toggle } from '../ui/components';
@@ -141,6 +143,17 @@ export default function DietScreen() {
               hint={aiReady ? 'A IA separa refeições, horários, quantidades e alternativas.' : 'Uma refeição por linha; "OU" separa alternativas.'}
             />
             <Button variant="secondary" title="Interpretar texto" onPress={importText} loading={busy} disabled={text.trim().length < 5} />
+            {!aiReady ? (
+              <ExternalAiPanel
+                title="Interpretar com outra IA"
+                description="Para foto/PDF do plano ou textos difíceis: abra o Claude, ChatGPT ou Gemini, anexe o arquivo (ou use o texto acima) e envie a pergunta copiada. Cole a resposta aqui para conferir; as calorias são calculadas com a base do app."
+                attachHint="Se o plano for foto ou PDF, anexe-o antes de enviar."
+                getPrompt={() => buildExternalPrompt('diet', { text: text.trim() || undefined })}
+                onAnswer={(t) => {
+                  setDraft({ plan: dietImportToPlan(parseExternalDiet(t), foods, { professional, sourceFilePath: null }), explanations: ['Plano transcrito por IA externa: confira refeições, quantidades e alternativas.'] });
+                }}
+              />
+            ) : null}
           </Card>
           <SectionHeader title="Não tenho um plano" />
           <Card>

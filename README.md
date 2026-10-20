@@ -11,12 +11,12 @@ npm install
 npx expo start --web        # ou: npx expo start  (Android via development build)
 ```
 
-Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca na TACO, interpretação de frases pelo leitor local e respostas rápidas do assistente. Para nuvem, login e IA, siga [docs/IMPLANTACAO.md](docs/IMPLANTACAO.md).
+Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca na TACO, interpretação de frases pelo leitor local e respostas rápidas do assistente. Sem chave de API, dá para usar o **Claude, ChatGPT ou Gemini por copiar e colar**: o app prepara a pergunta, abre o site/app e interpreta a resposta colada (sempre com conferência). Para nuvem, login e IA, siga [docs/IMPLANTACAO.md](docs/IMPLANTACAO.md).
 
 ## O que tem
 
 - **Início:** proteína e água em destaque, calorias e macros (com "parcial" quando a fonte não informa um nutriente), atividades, próximo lembrete, evolução de peso e composição, adesão de 7 dias, registro rápido sempre à mão.
-- **Alimentação:** diário por refeição; 4 formas de adicionar — pesquisa (TACO, sinônimos, favoritos, recentes), frase em linguagem natural, foto do rótulo, código de barras (Open Food Facts); receitas, marmitas e lista de compras; suplementos (creatina nunca conta como proteína); plano alimentar importado ou proposta orientativa, com alternativas que não são somadas.
+- **Alimentação:** diário por refeição; 4 formas de adicionar — pesquisa (TACO, sinônimos, favoritos, recentes), frase em linguagem natural, foto do rótulo, código de barras (Open Food Facts); receitas, marmitas e lista de compras; suplementos (creatina, vitaminas e minerais registrados à parte, sem mexer nos macros); plano alimentar importado ou proposta orientativa, com alternativas que não são somadas.
 - **Evolução:** peso com média móvel, avaliações corporais (importadas por IA com conferência ou digitadas), comparação com a anterior e a inicial, tendências 30/60/90 dias, relatórios PDF/CSV.
 - **Atividades:** registro, gasto estimado por MET com faixa de incerteza (sem virar crédito alimentar), consistência semanal.
 - **Assistente IA:** chat com seus registros e a base TACO; não diagnostica e respeita metas e planos prescritos.
@@ -25,7 +25,7 @@ Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca n
 ## Qualidade
 
 ```bash
-npm run check        # tipos + lint + 104 testes unitários (inclui os 15 cenários obrigatórios)
+npm run check        # tipos + lint + 122 testes unitários (inclui os 15 cenários obrigatórios)
 npm run test:db      # migrações e RLS em PostgreSQL real
 npm run test:e2e     # fluxo completo na versão web (Playwright/Chromium)
 ```

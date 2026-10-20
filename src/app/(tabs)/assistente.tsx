@@ -5,6 +5,8 @@ import { addDays } from '../../domain/dates';
 import type { ActivityLog, BodyAssessment, ChatMessage, DiaryEntry, DietPlan, WaterLog } from '../../domain/types';
 import { aiChat, AiUnavailableError } from '../../services/ai';
 import { buildAiContext, localAnswer, SUGGESTED_QUESTIONS, type ContextInput } from '../../services/aiContext';
+import { buildExternalPrompt, cleanChatAnswer } from '../../services/externalAi';
+import { ExternalAiPanel } from '../../ui/ExternalAi';
 import { newId } from '../../services/ids';
 import { useApp, useStore } from '../../state/AppProvider';
 import { useAllFoods, useCollection, useGoals, useProfile, useToday } from '../../state/hooks';
@@ -71,7 +73,21 @@ export default function Assistant() {
     }
   };
 
-  const all = [...messages.data.map((m) => ({ role: m.role, content: m.content, meta: (m.meta as { engine?: string; food_sources?: string[] } | null)?.engine === 'local' ? 'resposta local, sem IA' : (m.meta as { food_sources?: string[] } | null)?.food_sources?.length ? `fontes: ${(m.meta as { food_sources: string[] }).food_sources.join(', ').toUpperCase()}` : undefined })), ...pending];
+  const label = (meta: { engine?: string; food_sources?: string[] } | null) =>
+    meta?.engine === 'local' ? 'resposta local, sem IA' : meta?.engine === 'external' ? 'IA externa — não verificada pelo app' : meta?.food_sources?.length ? `fontes: ${meta.food_sources.join(', ').toUpperCase()}` : undefined;
+  const all = [...messages.data.map((m) => ({ role: m.role, content: m.content, meta: label(m.meta as { engine?: string; food_sources?: string[] } | null) })), ...pending];
+  const lastQuestion = [...messages.data].reverse().find((m) => m.role === 'user')?.content ?? '';
+
+  const externalPrompt = () => buildExternalPrompt('chat', { question: text.trim() || lastQuestion, context: buildAiContext(input) });
+  const saveExternal = async (answerText: string) => {
+    const answer = cleanChatAnswer(answerText);
+    const q = text.trim();
+    const rows: Omit<ChatMessage, 'id' | 'user_id' | 'created_at'>[] = [];
+    if (q) rows.push({ conversation_id: conversationId, role: 'user', content: q, meta: null });
+    rows.push({ conversation_id: conversationId, role: 'assistant', content: answer, meta: { engine: 'external' } });
+    await store.insertMany<ChatMessage>('chat_messages', rows);
+    setText('');
+  };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
@@ -82,7 +98,7 @@ export default function Assistant() {
             title={mode === 'local' ? 'IA indisponível no modo local' : 'Uso de IA não autorizado'}
             action={mode === 'cloud' ? <Button small variant="secondary" title="Privacidade" onPress={() => router.push('/privacidade')} /> : undefined}
           >
-            {mode === 'local' ? 'Respondo perguntas diretas calculadas com seus registros. A conversa completa exige a conta na nuvem.' : 'Autorize a IA a ler seus registros para conversar sobre sua alimentação e evolução.'}
+            {mode === 'local' ? 'Respondo perguntas diretas calculadas com seus registros. Para conversas completas, use “Resposta completa em outra IA” (Claude, ChatGPT ou Gemini).' : 'Autorize a IA a ler seus registros, ou use “Resposta completa em outra IA”.'}
           </Notice>
         ) : (
           <T variant="tiny">O assistente usa seus registros e a base TACO. Ele não faz diagnósticos nem altera dietas ou metas prescritas. Recomendações gerais não substituem orientação profissional.</T>
@@ -112,6 +128,15 @@ export default function Assistant() {
           </View>
         ))}
         {busy ? <T variant="small">Pensando…</T> : null}
+        {!aiReady ? (
+          <ExternalAiPanel
+            title="Resposta completa em outra IA"
+            description="Escreva a pergunta abaixo (ou use a última feita). O app copia a pergunta junto com um resumo dos seus registros e abre o Claude, ChatGPT ou Gemini. Depois cole a resposta aqui para guardá-la no histórico."
+            getPrompt={externalPrompt}
+            onAnswer={saveExternal}
+            disabled={!text.trim() && !lastQuestion}
+          />
+        ) : null}
       </ScrollView>
       <Row style={{ padding: spacing.md, backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 }}>
         <TextInput

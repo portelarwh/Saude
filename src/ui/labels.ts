@@ -34,5 +34,6 @@ export const SUPPLEMENT_LABELS: Record<SupplementCategory, string> = {
   protein_bar: 'Barra proteica',
   protein_drink: 'Bebida proteica',
   multivitamin: 'Multivitamínico',
+  vitamin_mineral: 'Vitamina ou mineral isolado',
   other: 'Outro suplemento',
 };

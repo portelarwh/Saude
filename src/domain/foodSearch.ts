@@ -19,10 +19,13 @@ export function normalizeText(s: string): string {
 
 const STOPWORDS = new Set(['de', 'da', 'do', 'das', 'dos', 'com', 'e', 'a', 'o', 'em', 'tipo', 'sem']);
 
+const ABBREVIATIONS: Record<string, string> = { vit: 'vitamina', vitam: 'vitamina', supl: 'suplemento', mag: 'magnesio', cr: 'creatina' };
+
 export function tokens(s: string): string[] {
   return normalizeText(s)
     .split(' ')
-    .filter((t) => t && !STOPWORDS.has(t));
+    .filter((t) => t && !STOPWORDS.has(t))
+    .map((t) => ABBREVIATIONS[t] ?? t);
 }
 
 /** Singular aproximado do português, para "ovos" ≈ "ovo", "pães" ≈ "pao". */

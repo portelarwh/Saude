@@ -9,8 +9,11 @@
  * Resultado: sugestões para conferência, nunca registros confirmados.
  */
 import { normalizeText, searchFoods } from './foodSearch';
+import { dosesFromCompoundAmount } from './compounds';
 import { scalePer100, type Nutrients } from './nutrients';
 import type { Food } from './types';
+
+const num1 = (v: number) => String(Math.round(v * 100) / 100).replace('.', ',');
 
 export interface ParsedItem {
   text: string; // trecho original
@@ -39,6 +42,10 @@ const NUMBER_WORDS: Record<string, number> = {
 };
 
 const UNIT_PATTERNS: [RegExp, string][] = [
+  [/^(mcg|µg|ug|microgramas?)\b/, 'mcg'],
+  [/^(mg|miligramas?)\b/, 'mg'],
+  [/^(ui|iu)\b/, 'UI'],
+  [/^(capsulas?|comprimidos?|caps|gotas?)\b/, 'dose'],
   [/^(g|gr|grama|gramas)\b/, 'g'],
   [/^(ml|mililitro|mililitros)\b/, 'ml'],
   [/^(kg|quilo|quilos)\b/, 'kg'],
@@ -96,10 +103,10 @@ export function parseQuantity(segment: string): { quantity: number | null; unit:
   }
   // "100g de arroz" já tratado; "arroz 100g" no final
   if (quantity === null) {
-    const tail = s.match(/\s(\d+(?:[.,]\d+)?)\s*(g|ml)$/);
+    const tail = s.match(/\s(\d+(?:[.,]\d+)?)\s*(mcg|mg|ui|g|ml)$/);
     if (tail) {
       quantity = parseFloat(tail[1].replace(',', '.'));
-      unit = tail[2];
+      unit = tail[2] === 'ui' ? 'UI' : tail[2];
       s = s.slice(0, tail.index).trim();
     }
   }
@@ -124,6 +131,18 @@ function modifiersOf(rest: string): { query: string; notes: string[]; questions:
 
 export function resolveAmount(food: Food, quantity: number | null, unit: string | null): { amount: number | null; estimated: boolean; label: string | null; question: string | null } {
   const q = quantity ?? 1;
+  // suplementos: "2500 mcg" ou "2 cápsulas" viram doses do produto cadastrado
+  if (food.is_supplement && food.serving_size) {
+    if (unit === 'mcg' || unit === 'mg' || unit === 'UI' || (unit === 'g' && food.compounds_per_serving?.creatine_g)) {
+      const doses = dosesFromCompoundAmount(food.compounds_per_serving, q, unit);
+      if (doses !== null) return { amount: food.serving_size * doses, estimated: false, label: `${num1(doses)} dose(s)`, question: null };
+      return { amount: food.serving_size, estimated: true, label: '1 dose', question: `Não foi possível converter ${q} ${unit} em doses de "${food.name}": confirme o número de doses.` };
+    }
+    if (unit === 'dose' || unit === null) return { amount: food.serving_size * q, estimated: false, label: `${num1(q)} dose(s)`, question: null };
+  }
+  if (unit === 'mcg' || unit === 'mg' || unit === 'UI') {
+    return { amount: null, estimated: true, label: null, question: `"${food.name}" não é um suplemento cadastrado; ${unit} não pode ser convertido em gramas do alimento.` };
+  }
   if (unit === 'g' || unit === 'ml') return { amount: q, estimated: false, label: null, question: null };
   if (unit === 'kg' || unit === 'l') return { amount: q * 1000, estimated: false, label: null, question: null };
   const measures = food.household_measures;
@@ -164,6 +183,8 @@ export function buildParsedItem(
     estimated = r.estimated;
     label = r.label;
     if (r.question) questions.push(r.question);
+  } else if (parsed.unit === 'mcg' || parsed.unit === 'mg' || parsed.unit === 'UI') {
+    questions.push(`"${parsed.foodQuery}" parece um suplemento ainda não cadastrado. Cadastre-o em Meus suplementos (dose e quantidade por dose) para registrar.`);
   } else {
     questions.push(`Não encontramos "${parsed.foodQuery}" na base. Pesquise manualmente ou cadastre o alimento.`);
   }

@@ -9,7 +9,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { buildEntry } from '../domain/entries';
+import { buildEntry, buildSupplementEntry } from '../domain/entries';
 import { searchFoods } from '../domain/foodSearch';
 import { parseMealLocally, updateParsedItem, type ParsedItem, type ParsedMeal } from '../domain/mealParser';
 import { normalizeLabel } from '../domain/labels';
@@ -17,6 +17,7 @@ import { sumNutrients } from '../domain/nutrients';
 import { MEAL_LABELS, type DiaryEntry, type Food, type MealType } from '../domain/types';
 import { aiExtractLabel, aiParseMeal, AiUnavailableError, searchUsda, type UsdaFood } from '../services/ai';
 import { pickImage, uploadPrivateFile } from '../services/files';
+import { buildExternalPrompt, parseExternalLabel, parseExternalMeal } from '../services/externalAi';
 import { labelExtractionToLabelData, mealParseToParsedMeal } from '../services/imports';
 import { isValidBarcode, lookupBarcode } from '../services/openFoodFacts';
 import { useApp, useStore } from '../state/AppProvider';
@@ -24,6 +25,7 @@ import { putDraft } from '../state/drafts';
 import { useAllFoods, useCollection, useProfile, useToday } from '../state/hooks';
 import { Badge, Button, Card, Chip, Field, ListItem, Notice, NumberField, Row, Screen, T } from '../ui/components';
 import { num, SOURCE_LABEL } from '../ui/format';
+import { ExternalAiPanel } from '../ui/ExternalAi';
 import { FoodRow } from '../ui/FoodRow';
 import { spacing, useTheme } from '../ui/theme';
 
@@ -190,7 +192,12 @@ function PhraseTab({ date, meal }: { date: string; meal: MealType }) {
     const consumed_at = new Date().toISOString();
     await store.insertMany<DiaryEntry>(
       'diary_entries',
-      ready.map((i) => ({ ...buildEntry(i.food!, i.amount!, { date, meal, origin: 'natural_language', consumed_at }), note: i.notes.join(', ') || null })),
+      ready.map((i) => {
+        const opts = { date, meal, origin: 'natural_language' as const, consumed_at };
+        // suplementos mantêm doses e compostos (ex.: vitamina B12 em mcg)
+        const e = i.food!.is_supplement && i.food!.serving_size ? buildSupplementEntry(i.food!, i.amount! / i.food!.serving_size, opts) : buildEntry(i.food!, i.amount!, opts);
+        return { ...e, note: i.notes.join(', ') || null };
+      }),
     );
     router.back();
   };
@@ -207,6 +214,18 @@ function PhraseTab({ date, meal }: { date: string; meal: MealType }) {
       />
       <Button title="Interpretar" icon="sparkles-outline" onPress={interpret} loading={busy} disabled={text.trim().length < 2} />
       {notice ? <Notice kind="info">{notice}</Notice> : null}
+      {!(mode === 'cloud' && profile?.consent_ai_at) ? (
+        <ExternalAiPanel
+          title="Interpretar com outra IA"
+          description="O app copia a frase com instruções para a IA separar alimentos e quantidades (sem calorias). Cole a resposta: os nutrientes continuam vindo da base do app."
+          getPrompt={() => buildExternalPrompt('meal', { text })}
+          onAnswer={(t) => {
+            setParsed(mealParseToParsedMeal(parseExternalMeal(t), foods));
+            setNotice('Itens identificados por IA externa. Confira alimentos e quantidades.');
+          }}
+          disabled={text.trim().length < 2}
+        />
+      ) : null}
       {parsed ? (
         <>
           <Notice kind="warning" title="Confira antes de adicionar">
@@ -295,6 +314,22 @@ function LabelTab({ date, meal }: { date: string; meal: MealType }) {
           <Button variant="secondary" icon="images-outline" title="Escolher da galeria" onPress={() => run('library')} disabled={busy} />
         </View>
       )}
+      {!aiReady ? (
+        <ExternalAiPanel
+          title="Ler o rótulo com outra IA"
+          description="Abra o Claude, ChatGPT ou Gemini, anexe a foto do rótulo e envie a pergunta copiada. Cole a resposta aqui: os valores abrem na tela de conferência."
+          attachHint="Anexe a foto do rótulo antes de enviar."
+          getPrompt={() => buildExternalPrompt('label', {})}
+          onAnswer={(t) => {
+            const ex = parseExternalLabel(t);
+            const normalized = normalizeLabel(labelExtractionToLabelData(ex));
+            normalized.warnings.unshift('Valores transcritos por IA externa: compare cada número com o rótulo.');
+            if (ex.unreadable_fields.length) normalized.warnings.push(`Campos ilegíveis: ${ex.unreadable_fields.join(', ')}.`);
+            const key = putDraft(`ext-label-${Date.now()}`, { ...normalized, filePath: null });
+            router.push({ pathname: '/alimento/novo', params: { draft: key, date, meal } });
+          }}
+        />
+      ) : null}
       {error ? <Notice kind="error" action={<Button small variant="secondary" title="Digitar valores" onPress={() => router.push({ pathname: '/alimento/novo', params: { date, meal } })} />}>{error}</Notice> : null}
       <Button variant="ghost" icon="create-outline" title="Digitar valores do rótulo" onPress={() => router.push({ pathname: '/alimento/novo', params: { date, meal } })} />
     </>

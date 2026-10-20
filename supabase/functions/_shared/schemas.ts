@@ -35,6 +35,7 @@ export const SUPPLEMENT_CATEGORIES = [
   'protein_bar',
   'protein_drink',
   'multivitamin',
+  'vitamin_mineral',
   'other',
 ] as const;
 

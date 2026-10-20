@@ -7,6 +7,7 @@
  */
 import type { BioimpedanceExtraction, DietImport, LabelExtraction, MealParse } from '../../supabase/functions/_shared/schemas';
 import { validateAssessmentDraft } from '../domain/bodyComposition';
+import { compoundsToRecord, normalizeCompoundUnit } from '../domain/compounds';
 import type { LabelData } from '../domain/labels';
 import { buildParsedItem, resolveAmount, type ParsedMeal } from '../domain/mealParser';
 import { searchFoods } from '../domain/foodSearch';
@@ -50,13 +51,12 @@ function normalizeUnit(u: string | null): string | null {
 // Rótulo
 // ---------------------------------------------------------------------------
 export function labelExtractionToLabelData(ex: LabelExtraction): LabelData {
-  const compounds: Record<string, number> = {};
-  for (const c of ex.compounds_per_serving) {
-    const key = `${c.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\W+/g, '_')}_g`;
-    const unit = c.unit.toLowerCase();
-    const grams = unit === 'mg' ? c.amount / 1000 : unit === 'mcg' || unit === 'µg' ? c.amount / 1e6 : c.amount;
-    compounds[/creatin/.test(key) ? 'creatine_g' : key] = grams;
-  }
+  const compounds = compoundsToRecord(
+    ex.compounds_per_serving.flatMap((c) => {
+      const unit = normalizeCompoundUnit(c.unit);
+      return unit ? [{ name: c.name, amount: c.amount, unit }] : [];
+    }),
+  );
   const toNutrients = (n: LabelExtraction['per_100']) =>
     n
       ? {
@@ -88,7 +88,7 @@ export function labelExtractionToLabelData(ex: LabelExtraction): LabelData {
     ingredients_text: ex.ingredients_text,
     is_supplement: ex.is_supplement,
     supplement_category: ex.supplement_category,
-    compounds_per_serving: Object.keys(compounds).length ? compounds : null,
+    compounds_per_serving: compounds,
   };
 }
 

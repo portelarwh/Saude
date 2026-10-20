@@ -156,6 +156,54 @@ async function flow() {
     if (!/Análise numérica/.test(body) || !/−3,00 kg/.test(body)) throw new Error('comparação ausente: ' + body.slice(0, 300));
     await shot('09-comparacao');
   });
+  await step('suplemento de vitamina B12 sem alterar macros', async () => {
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    const before = (await page.innerText('body')).match(/Calorias\n([^\n]+)/)?.[1];
+    await page.goto(BASE + '/alimento/novo?supplement=1', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    await fill('Nome do produto', 'Vitamina B12');
+    await click('Vitamina ou mineral isolado');
+    await click('Adicionar composto');
+    await fill('Composto', 'Vitamina B12');
+    await fill('Quantidade', '2500');
+    await click('mcg');
+    await shot('12-b12-cadastro');
+    await click('Salvar alimento');
+    await page.waitForTimeout(800);
+    await page.goto(BASE + '/adicionar?tab=frase&meal=breakfast', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    await fill('Descreva o que você comeu', 'Vit B12 2500mcg');
+    await click('Interpretar');
+    await page.waitForTimeout(500);
+    const parsed = await page.innerText('body');
+    if (!parsed.includes('Vitamina B12')) throw new Error('B12 não reconhecida na frase');
+    await click('Adicionar 1 item(ns)');
+    await page.waitForTimeout(800);
+    await page.goto(BASE + '/suplementos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    const sup = await page.innerText('body');
+    if (!/Vitamina B12 2\.500 mcg/.test(sup)) throw new Error('composto não aparece: ' + sup.slice(0, 300));
+    await shot('13-b12-suplementos');
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    const after = (await page.innerText('body')).match(/Calorias\n([^\n]+)/)?.[1];
+    if (before !== after) throw new Error(`macros mudaram: ${before} -> ${after}`);
+  });
+  await step('resposta colada de IA externa', async () => {
+    await page.goto(BASE + '/adicionar?tab=frase&meal=lunch', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    await fill('Descreva o que você comeu', 'arroz, feijão e bife');
+    await click('Interpretar com outra IA');
+    const answer = 'Aqui está:\n```json\n{"items":[{"text":"arroz","food_query":"arroz branco","quantity":4,"unit":"colher de sopa","preparation":null,"notes":[]},{"text":"bife","food_query":"bife","quantity":1,"unit":"bife","preparation":"grelhado","notes":[],"energy_kcal":999}],"questions":[],"meal":"lunch"}\n```';
+    await fill('Resposta da IA', answer);
+    await page.getByText('Interpretar', { exact: true }).last().click();
+    await page.waitForTimeout(600);
+    const body = await page.innerText('body');
+    if (!body.includes('Arroz, tipo 1, cozido') || !body.includes('Carne, bovina, patinho')) throw new Error('itens da IA externa não aparecem');
+    if (body.includes('999 kcal')) throw new Error('usou caloria vinda da IA externa');
+    await shot('14-ia-externa');
+  });
   await step('telas secundárias abrem', async () => {
     for (const r of ['agua', 'suplementos', 'receitas', 'receita', 'metas', 'perfil', 'notificacoes', 'privacidade', 'relatorios', 'dieta', 'atividade', 'fontes', 'atividades', 'alimento/novo', 'adicionar']) {
       await page.goto(BASE + '/' + r, { waitUntil: 'networkidle' });

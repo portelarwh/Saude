@@ -10,7 +10,10 @@ import { formatDateBR, parseBRDate } from '../../domain/dates';
 import type { BodyAssessment, BodyMetricKey, MeasurementConditions, MetricValue } from '../../domain/types';
 import { aiExtractBioimpedance } from '../../services/ai';
 import { pickDocument, uploadPrivateFile } from '../../services/files';
+import { buildExternalPrompt, parseExternalBioimpedance } from '../../services/externalAi';
 import { bioExtractionToDraft, confirmAssessment, type AssessmentDraft } from '../../services/imports';
+import type { BioimpedanceExtraction } from '../../../supabase/functions/_shared/schemas';
+import { ExternalAiPanel } from '../../ui/ExternalAi';
 import { useApp, useStore } from '../../state/AppProvider';
 import { useProfile } from '../../state/hooks';
 import { Badge, Button, Card, Chip, ChipSelect, Field, Notice, NumberField, Row, Screen, T, Toggle } from '../../ui/components';
@@ -52,6 +55,18 @@ export default function NewAssessment() {
   const [extraKeys, setExtraKeys] = useState<BodyMetricKey[]>([]);
   const aiReady = mode === 'cloud' && Boolean(profile?.consent_ai_at);
 
+  const applyExtraction = (ex: BioimpedanceExtraction, path: string | null, extraWarning?: string) => {
+    const r = bioExtractionToDraft(ex, path);
+    setDraft({ ...r.draft, conditions: emptyDraft().conditions });
+    setWarnings(extraWarning ? [extraWarning, ...r.warnings] : r.warnings);
+    if (r.draft.measured_at) {
+      const d = new Date(r.draft.measured_at);
+      setDateText(formatDateBR(d));
+      setTimeText(d.getHours() || d.getMinutes() ? d.toTimeString().slice(0, 5) : '');
+    } else setDateText('');
+    setImported(true);
+  };
+
   const importFile = async () => {
     setError(null);
     try {
@@ -59,16 +74,7 @@ export default function NewAssessment() {
       if (!file) return;
       setBusy(true);
       const path = await uploadPrivateFile(store.userId, 'exames', file);
-      const ex = await aiExtractBioimpedance(path);
-      const r = bioExtractionToDraft(ex, path);
-      setDraft({ ...r.draft, conditions: emptyDraft().conditions });
-      setWarnings(r.warnings);
-      if (r.draft.measured_at) {
-        const d = new Date(r.draft.measured_at);
-        setDateText(formatDateBR(d));
-        setTimeText(d.getHours() || d.getMinutes() ? d.toTimeString().slice(0, 5) : '');
-      } else setDateText('');
-      setImported(true);
+      applyExtraction(await aiExtractBioimpedance(path), path);
     } catch (e) {
       setError(`${(e as Error).message} Você pode digitar os valores manualmente abaixo.`);
     } finally {
@@ -121,6 +127,15 @@ export default function NewAssessment() {
         ) : (
           <Notice kind="info">{mode === 'local' ? 'A importação por IA exige a conta na nuvem (Supabase). Digite os valores abaixo.' : 'Autorize o uso de IA em Perfil › Privacidade para importar exames.'}</Notice>
         )}
+        {!aiReady ? (
+          <ExternalAiPanel
+            title="Ler o exame com outra IA"
+            description="Abra o Claude, ChatGPT ou Gemini, anexe o PDF ou a foto do laudo e envie a pergunta copiada. Cole a resposta aqui: os valores abrem para conferência e só são salvos quando você confirmar."
+            attachHint="Anexe o PDF ou a foto do exame antes de enviar."
+            getPrompt={() => buildExternalPrompt('bioimpedance', {})}
+            onAnswer={(t) => applyExtraction(parseExternalBioimpedance(t), null, 'Valores transcritos por IA externa: compare cada número com o laudo.')}
+          />
+        ) : null}
         {imported ? <Notice kind="warning" title="Confira os valores extraídos">Compare com o laudo e corrija o que for preciso. Indicadores ausentes no exame não foram preenchidos.</Notice> : null}
       </Card>
       {warnings.map((w) => <Notice key={w} kind="warning">{w}</Notice>)}

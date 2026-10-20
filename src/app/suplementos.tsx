@@ -8,6 +8,7 @@
  */
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
+import { formatCompounds } from '../domain/compounds';
 import { buildEntry, buildSupplementEntry, compoundTotals } from '../domain/entries';
 import { searchFoods } from '../domain/foodSearch';
 import { sumNutrients } from '../domain/nutrients';
@@ -63,10 +64,10 @@ export default function Supplements() {
         <T variant="h3">Hoje</T>
         {supplementEntries.length === 0 ? <T variant="small">Nenhum suplemento registrado hoje.</T> : null}
         {supplementEntries.map((e) => (
-          <T key={e.id} variant="small">{`• ${e.food_name}: ${num(e.servings ?? 0, 1)} dose(s), ${num(e.nutrients.protein_g, 1)} g proteína${e.compounds?.creatine_g ? `, ${num(e.compounds.creatine_g, 1)} g creatina` : ''}`}</T>
+          <T key={e.id} variant="small">{`• ${e.food_name}: ${num(e.servings ?? 0, 1)} dose(s)${e.nutrients.protein_g ? `, ${num(e.nutrients.protein_g, 1)} g proteína` : ''}${e.compounds ? ` · ${formatCompounds(e.compounds)}` : ''}`}</T>
         ))}
         {supplementEntries.length ? <T variant="small">{`Proteína vinda de suplementos: ${num(supProtein, 1)} g (já somada ao total do dia).`}</T> : null}
-        {compounds.creatine_g ? <T variant="small">{`Creatina: ${num(compounds.creatine_g, 1)} g (registrada à parte; não conta como proteína).`}</T> : null}
+        {Object.keys(compounds).length ? <T variant="small">{`Compostos hoje: ${formatCompounds(compounds)} (registrados à parte; não alteram calorias nem macros).`}</T> : null}
       </Card>
 
       <SectionHeader title="Meus suplementos" action={<Button small icon="add" title="Cadastrar" onPress={() => router.push({ pathname: '/alimento/novo', params: { supplement: '1' } })} />} />
@@ -84,7 +85,7 @@ export default function Supplements() {
               key={s.id}
               icon="flask-outline"
               title={[s.name, s.brand, s.flavor].filter(Boolean).join(' · ')}
-              subtitle={`${s.supplement_category ? SUPPLEMENT_LABELS[s.supplement_category] : 'Suplemento'} · dose ${num(s.serving_size)} ${s.base_unit} · ${s.compounds_per_serving?.creatine_g ? `${num(s.compounds_per_serving.creatine_g, 1)} g creatina` : `${num(((s.per100.protein_g ?? 0) * (s.serving_size ?? 0)) / 100, 1)} g proteína/dose`}`}
+              subtitle={`${s.supplement_category ? SUPPLEMENT_LABELS[s.supplement_category] : 'Suplemento'} · dose ${s.serving_label ?? `${num(s.serving_size)} ${s.base_unit}`} · ${s.compounds_per_serving ? formatCompounds(s.compounds_per_serving) : `${num(((s.per100.protein_g ?? 0) * (s.serving_size ?? 0)) / 100, 1)} g proteína/dose`}`}
               onPress={() => {
                 setSelected(s);
                 setDoses(1);
@@ -128,7 +129,7 @@ export default function Supplements() {
             ))}
             {preview ? (
               <Notice kind="info" title="Prévia">
-                {`${num(preview.totals.values.energy_kcal)} kcal · ${num(preview.totals.values.protein_g, 1)} g proteína · ${num(preview.totals.values.carbs_g, 1)} g carbo${preview.items[0].compounds?.creatine_g ? ` · creatina ${num(preview.items[0].compounds.creatine_g, 1)} g (fora da proteína)` : ''}`}
+                {`${num(preview.totals.values.energy_kcal)} kcal · ${num(preview.totals.values.protein_g, 1)} g proteína · ${num(preview.totals.values.carbs_g, 1)} g carbo${preview.items[0].compounds ? ` · ${formatCompounds(preview.items[0].compounds)} (fora dos macros)` : ''}`}
               </Notice>
             ) : null}
             <Button title="Registrar" icon="checkmark" onPress={register} disabled={!doses || doses <= 0} />

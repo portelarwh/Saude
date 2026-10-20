@@ -1,6 +1,7 @@
 /** Detalhe do alimento: quantidade, medidas caseiras, nutrientes e fonte. */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
+import { formatCompounds } from '../../domain/compounds';
 import { buildEntry, buildSupplementEntry } from '../../domain/entries';
 import { NUTRIENT_KEYS, NUTRIENT_LABELS, scalePer100 } from '../../domain/nutrients';
 import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type MealType } from '../../domain/types';
@@ -67,7 +68,9 @@ export default function FoodDetail() {
         {scaled ? (
           <T>{`${nutrient(scaled.energy_kcal, 'kcal', 0)} · ${nutrient(scaled.protein_g, 'g prot.')} · ${nutrient(scaled.carbs_g, 'g carbo')} · ${nutrient(scaled.fat_g, 'g gord.')}`}</T>
         ) : null}
-        {food.compounds_per_serving?.creatine_g && doses ? <T variant="small">{`Creatina: ${num(food.compounds_per_serving.creatine_g * doses, 1)} g (não contabilizada como proteína)`}</T> : null}
+        {food.compounds_per_serving && doses ? (
+          <T variant="small">{`${formatCompounds(Object.fromEntries(Object.entries(food.compounds_per_serving).map(([k, v]) => [k, v * doses])))} — registrado à parte, não altera calorias nem macros.`}</T>
+        ) : null}
         <Button title="Adicionar ao diário" icon="add" onPress={add} disabled={!amount || amount <= 0} />
       </Card>
 
