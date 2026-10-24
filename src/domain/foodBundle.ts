@@ -5,6 +5,7 @@
  * nada é recalculado nem completado, e `null` continua "não informado".
  */
 import { z } from 'zod';
+import { parseFoodsCsv, type CsvIssue } from './foodCsv';
 import { normalizeText } from './foodSearch';
 import { NUTRIENT_KEYS } from './nutrients';
 import type { Food } from './types';
@@ -131,4 +132,14 @@ export function parseFoodBundle(text: string): { foods: Food[]; skipped: number 
 export function newFoodsFrom(bundle: Food[], existing: Food[]): Food[] {
   const known = new Set(existing.map(foodKey));
   return bundle.filter((f) => !known.has(foodKey(f)));
+}
+
+/** Lê um arquivo de alimentos: pacote exportado pelo app (JSON) ou planilha (CSV). */
+export function parseFoodFile(text: string): { foods: Food[]; errors: CsvIssue[]; warnings: CsvIssue[] } {
+  if (text.replace(/^\uFEFF/, '').trimStart().startsWith('{')) {
+    const { foods, skipped } = parseFoodBundle(text);
+    return { foods, errors: [], warnings: skipped ? [{ line: 0, message: `${skipped} item(ns) incompleto(s) ignorado(s).` }] : [] };
+  }
+  const r = parseFoodsCsv(text);
+  return { ...r, foods: r.foods.map(toBaseFood) };
 }

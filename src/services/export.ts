@@ -8,6 +8,7 @@ import { ALL_TABLES, type DataStore } from '../data/store';
 import { toCSV, type Report } from '../domain/reports';
 import { formatDateBR } from '../domain/dates';
 import { buildFoodBundle } from '../domain/foodBundle';
+import { csvTemplate } from '../domain/foodCsv';
 import type { Food } from '../domain/types';
 
 async function shareText(filename: string, content: string, mime: string): Promise<void> {
@@ -46,6 +47,11 @@ export async function exportFoodBase(baseFoods: Food[], userFoods: Food[]): Prom
   const bundle = buildFoodBundle(baseFoods, userFoods);
   await shareText('alimentos-base.json', JSON.stringify(bundle, null, 2) + '\n', 'application/json');
   return bundle.alimentos.length;
+}
+
+/** Modelo de planilha para importação em massa de alimentos. */
+export async function exportFoodCsvTemplate(): Promise<void> {
+  await shareText('modelo-alimentos.csv', '\uFEFF' + csvTemplate(), 'text/csv');
 }
 
 /** CSV de uma tabela (abre no Excel em pt-BR: separador ";" e vírgula decimal). */

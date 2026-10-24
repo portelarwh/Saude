@@ -4,6 +4,7 @@
  * (EXPO_BASE_URL, ex.: /Saude no GitHub Pages) e cria o 404.html das rotas.
  * Uso: node scripts/pwa-postbuild.js [pasta]   (padrão: dist)
  */
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -16,7 +17,19 @@ for (const f of ['manifest.webmanifest', 'sw.js', 'icons/icon-192.png']) {
   if (!fs.existsSync(path.join(dist, f))) throw new Error(`dist/${f} ausente: a pasta public/ não foi copiada no build`);
 }
 
+// identifica este build (muda quando o código ou a base embutida mudam)
+const build = crypto.createHash('sha1').update(html).digest('hex').slice(0, 12);
+const foodBase = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src/data/reference/alimentos-base.json'), 'utf8'));
+fs.writeFileSync(
+  path.join(dist, 'versao.json'),
+  JSON.stringify({ build, gerado_em: new Date().toISOString(), base_alimentos: { atualizado_em: foodBase.atualizado_em, total: foodBase.alimentos.length } }, null, 2),
+);
+const swPath = path.join(dist, 'sw.js');
+fs.writeFileSync(swPath, fs.readFileSync(swPath, 'utf8').replace('__BUILD_ID__', build));
+
 const tags = [
+  `<meta name="app-build" content="${build}">`,
+  `<meta name="app-base" content="${base}">`,
   `<link rel="manifest" href="${base}/manifest.webmanifest">`,
   `<link rel="apple-touch-icon" href="${base}/icons/apple-touch-icon.png">`,
   `<meta name="apple-mobile-web-app-capable" content="yes">`,
@@ -30,4 +43,4 @@ if (!html.includes('rel="manifest"')) html = html.replace('</head>', `    ${tags
 fs.writeFileSync(indexPath, html);
 fs.copyFileSync(indexPath, path.join(dist, '404.html'));
 fs.writeFileSync(path.join(dist, '.nojekyll'), '');
-console.log(`PWA pronto em ${dist} (base "${base || '/'}")`);
+console.log(`PWA pronto em ${dist} (base "${base || '/'}", build ${build})`);

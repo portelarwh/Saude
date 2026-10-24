@@ -35,6 +35,11 @@ export const TACO_CITATION =
 let cache: Food[] | null = null;
 let baseCache: Food[] | null = null;
 
+/** Versão da base embutida neste build (para avisos de atualização). */
+export function foodBaseInfo(): { atualizado_em: string; total: number } {
+  return { atualizado_em: (base as { atualizado_em: string }).atualizado_em, total: baseFoods().length };
+}
+
 /** Alimentos incorporados ao sistema (exportados do app e copiados para o repositório). */
 export function baseFoods(): Food[] {
   baseCache ??= parseFoodBundle(JSON.stringify(base)).foods;

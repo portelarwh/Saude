@@ -23,9 +23,9 @@ export async function pickDocument(): Promise<PickedFile | null> {
   return { uri: a.uri, name: a.name, mimeType: a.mimeType ?? guessMime(a.name) };
 }
 
-/** Escolhe um arquivo JSON e devolve o texto (web e Android). */
-export async function pickJsonText(): Promise<{ name: string; text: string } | null> {
-  const r = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'text/plain', '*/*'], copyToCacheDirectory: true });
+/** Escolhe um arquivo de texto (JSON ou CSV) e devolve o conteúdo (web e Android). */
+export async function pickTextFile(): Promise<{ name: string; text: string } | null> {
+  const r = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'text/csv', 'text/comma-separated-values', 'text/plain', '*/*'], copyToCacheDirectory: true });
   if (r.canceled || !r.assets?.[0]) return null;
   const a = r.assets[0];
   if (Platform.OS === 'web') {

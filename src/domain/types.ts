@@ -75,6 +75,8 @@ export interface AppSettings {
   exercise_credit_pct?: number;
   /** Incluir observações de saúde no contexto enviado à IA. */
   ai_include_health_notes?: boolean;
+  /** Última versão da base de alimentos vista neste perfil (aviso "base atualizada"). */
+  seen_food_base?: { atualizado_em: string; total: number };
 }
 
 export type GoalOrigin = 'system' | 'user' | 'professional';

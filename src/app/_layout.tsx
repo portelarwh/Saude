@@ -7,6 +7,7 @@ import { AppProvider, useApp } from '../state/AppProvider';
 import { useProfile } from '../state/hooks';
 import { Loading } from '../ui/components';
 import { dark, light, ThemeContext } from '../ui/theme';
+import { UpdateBanner } from '../ui/UpdateBanner';
 
 function ThemedStack() {
   const system = useColorScheme();
@@ -41,10 +42,10 @@ function WithProfile({ systemScheme }: { systemScheme: ReturnType<typeof useColo
   }, [loading, profile, inOnboarding, router]);
 
   if (loading) return <ThemeContext.Provider value={{ colors: scheme === 'dark' ? dark : light, scheme }}><Loading /></ThemeContext.Provider>;
-  return <Shell scheme={scheme} />;
+  return <Shell scheme={scheme} trackSeen />;
 }
 
-function Shell({ scheme }: { scheme: 'light' | 'dark' }) {
+function Shell({ scheme, trackSeen = false }: { scheme: 'light' | 'dark'; trackSeen?: boolean }) {
   const colors = scheme === 'dark' ? dark : light;
   const theme = useMemo(() => ({ colors, scheme }), [colors, scheme]);
   return (
@@ -85,6 +86,7 @@ function Shell({ scheme }: { scheme: 'light' | 'dark' }) {
         <Stack.Screen name="refeicoes" options={{ title: 'Refeições salvas' }} />
         <Stack.Screen name="base-alimentos" options={{ title: 'Base de alimentos' }} />
       </Stack>
+      <UpdateBanner trackSeen={trackSeen} />
     </ThemeContext.Provider>
   );
 }

@@ -2,7 +2,7 @@
  * Páginas: rede primeiro (cai para a cópia salva). Arquivos do app: cópia salva
  * primeiro, atualizada em segundo plano. Nada de dados pessoais passa por aqui:
  * eles ficam no armazenamento do navegador ou no Supabase. */
-const CACHE = 'meu-equilibrio-v1';
+const CACHE = 'meu-equilibrio-__BUILD_ID__';
 const SCOPE = self.registration.scope;
 const SHELL = ['', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'].map((p) => new URL(p, SCOPE).toString());
 
@@ -21,6 +21,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin || !url.href.startsWith(SCOPE)) return;
+  if (url.pathname.endsWith('/versao.json')) return; // sempre da rede: é como o app descobre atualizações
 
   if (req.mode === 'navigate') {
     event.respondWith(

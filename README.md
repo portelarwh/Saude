@@ -28,13 +28,13 @@ Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca n
 - **Evolução:** peso com média móvel, avaliações corporais (importadas por IA com conferência ou digitadas), comparação com a anterior e a inicial, tendências 30/60/90 dias, relatórios PDF/CSV.
 - **Atividades:** registro, gasto estimado por MET com faixa de incerteza (sem virar crédito alimentar), consistência semanal.
 - **Assistente IA:** chat com seus registros e a base TACO; não diagnostica e respeita metas e planos prescritos.
-- **Base de alimentos:** exporte seus cadastros no formato da base do sistema para que novas instalações já venham com eles ([como](docs/BASE_DE_ALIMENTOS.md)); importe o arquivo em outro aparelho.
+- **Base de alimentos:** importação em massa por planilha (CSV) ou arquivo; exporte seus cadastros para a base do sistema. Planilhas enviadas para `dados/alimentos/` entram na base na próxima publicação e o app avisa "Atualizar base de dados" ([como](docs/BASE_DE_ALIMENTOS.md)).
 - **Perfil:** metas (sugeridas / suas / prescritas), notificações por tipo, privacidade (LGPD: consentimentos, exportar, excluir arquivos e conta), fontes de dados.
 
 ## Qualidade
 
 ```bash
-npm run check        # tipos + lint + 160 testes unitários (inclui os 15 cenários obrigatórios)
+npm run check        # tipos + lint + 173 testes unitários (inclui os 15 cenários obrigatórios)
 npm run test:db      # migrações e RLS em PostgreSQL real
 npm run test:e2e     # fluxo completo na versão web (Playwright/Chromium)
 ```

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # para gravar a base de alimentos atualizada a partir de dados/alimentos
   pages: write
   id-token: write
 
@@ -28,6 +28,16 @@ jobs:
       - run: npm ci
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - name: Base de alimentos (dados/alimentos → alimentos-base.json)
+        run: |
+          npm run base:atualizar
+          if ! git diff --quiet -- src/data/reference/alimentos-base.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/data/reference/alimentos-base.json
+            git commit -m "Atualiza a base de alimentos a partir de dados/alimentos"
+            git push
+          fi
       - name: Build web
         run: npx expo export --platform web --output-dir dist
         env:

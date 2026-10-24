@@ -279,6 +279,19 @@ async function flow() {
     if (!icon.ok()) throw new Error('ícone do manifesto não encontrado');
     const sw = await page.evaluate(async () => (await navigator.serviceWorker.ready).active?.scriptURL ?? null);
     if (!sw || !sw.endsWith('/sw.js')) throw new Error('service worker não ativo');
+    const build = await page.getAttribute('meta[name="app-build"]', 'content');
+    const v = await (await page.request.get(BASE + '/versao.json')).json();
+    if (!build || v.build !== build) throw new Error('versao.json não corresponde ao build');
+  });
+  await step('aviso de atualização da base', async () => {
+    await page.route('**/versao.json*', (route) => route.fulfill({ json: { build: 'novo-build', base_alimentos: { atualizado_em: '2099-01-01T00:00:00Z', total: 42 } } }));
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    const body = await page.innerText('body');
+    if (!/Atualizar base de dados/.test(body) || !/42 alimentos novos/.test(body)) throw new Error('aviso de atualização ausente');
+    await shot('13-atualizacao');
+    await click('Depois');
+    await page.unroute('**/versao.json*');
   });
   await step('exportar e importar base de alimentos', async () => {
     await page.goto(BASE + '/base-alimentos', { waitUntil: 'networkidle' });
@@ -290,10 +303,19 @@ async function flow() {
     if (bundle.formato !== 'meu-equilibrio/alimentos-v1') throw new Error('formato inesperado');
     const yog = bundle.alimentos.find((f) => f.name === 'Iogurte Proteico Teste');
     if (!yog || yog.user_id !== null || !yog.id.startsWith('base:')) throw new Error('rótulo salvo ausente na exportação');
-    await fill('Ou cole o conteúdo do arquivo', JSON.stringify(bundle));
-    await click('Importar texto colado');
+    await fill('Ou cole o conteúdo (CSV ou JSON)', JSON.stringify(bundle));
+    await click('Ler texto colado');
+    let body = await page.innerText('body');
+    if (!/0 novo\(s\)/.test(body) || !/já existe\(m\)/.test(body)) throw new Error('reimportação duplicaria alimentos');
+    await click('Cancelar');
+    await fill('Ou cole o conteúdo (CSV ou JSON)', 'nome;unidade;valores_por;porcao;kcal;proteina_g;fibra_g\nTapioca Teste;g;porcao;50;120;0,1;\nSem dados;g;;;;;\n');
+    await click('Ler texto colado');
+    body = await page.innerText('body');
+    if (!/1 novo\(s\)/.test(body) || !/Linha 3: Sem dados: nenhum valor nutricional/.test(body)) throw new Error('pré-visualização da planilha incorreta');
+    if (!/240 kcal/.test(body)) throw new Error('porção não convertida para 100 g');
+    await click('Importar 1 alimento(s)');
     await page.waitForTimeout(500);
-    if (!/0 alimento\(s\) novo\(s\) importado\(s\) · \d+ já existia/.test(await page.innerText('body'))) throw new Error('reimportação duplicou alimentos');
+    if (!/1 alimento\(s\) importado\(s\)/.test(await page.innerText('body'))) throw new Error('importação da planilha falhou');
     await shot('12-base-alimentos');
   });
   await step('telas secundárias abrem', async () => {
