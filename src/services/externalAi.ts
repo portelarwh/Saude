@@ -22,6 +22,9 @@ import {
   type LabelExtraction,
   type MealParse,
 } from '../../supabase/functions/_shared/schemas';
+import { extractJson, PasteParseError as ExternalParseError } from '../domain/pastedJson';
+
+export { extractJson, ExternalParseError };
 
 export type ExternalTask = 'chat' | 'meal' | 'label' | 'bioimpedance' | 'diet';
 
@@ -106,27 +109,6 @@ function defaultFor(field: string, parent: string): unknown {
   if (parent === '') return ({ confidence: 'medium', basis: 'unknown', is_supplement: false, name: 'Plano importado' } as Record<string, unknown>)[field] ?? null;
   if (parent === 'options' && field === 'label') return 'Opção';
   return null;
-}
-
-export class ExternalParseError extends Error {}
-
-/** Extrai o primeiro objeto JSON de um texto colado (com ou sem bloco ```json). */
-export function extractJson(text: string): unknown {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidates = [fenced?.[1], text];
-  for (const c of candidates) {
-    if (!c) continue;
-    const start = c.indexOf('{');
-    const end = c.lastIndexOf('}');
-    if (start < 0 || end <= start) continue;
-    const raw = c.slice(start, end + 1).replace(/,\s*([}\]])/g, '$1'); // vírgulas finais
-    try {
-      return JSON.parse(raw);
-    } catch {
-      // tenta o próximo candidato
-    }
-  }
-  throw new ExternalParseError('Não encontramos um JSON válido na resposta colada. Peça à IA para responder apenas com o bloco JSON e cole novamente.');
 }
 
 /** Completa chaves ausentes com os valores padrão do modelo (a IA externa às vezes omite campos). */

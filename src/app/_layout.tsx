@@ -81,6 +81,8 @@ function Shell({ scheme }: { scheme: 'light' | 'dark' }) {
         <Stack.Screen name="dieta" options={{ title: 'Meu plano alimentar' }} />
         <Stack.Screen name="atividade" options={{ title: 'Registrar atividade' }} />
         <Stack.Screen name="fontes" options={{ title: 'Fontes de dados' }} />
+        <Stack.Screen name="colar" options={{ title: 'Colar do agente de IA' }} />
+        <Stack.Screen name="refeicoes" options={{ title: 'Refeições salvas' }} />
       </Stack>
     </ThemeContext.Provider>
   );

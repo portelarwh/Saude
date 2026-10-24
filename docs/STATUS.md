@@ -53,6 +53,8 @@ Nada está **simulado**: não há telas de demonstração com dados falsos. Onde
 | 11 | Health Connect / dispositivos | ⬜ | Fase 4 |
 | 12 | Chat com dados do usuário | 🟡 | Contexto calculado no app; busca na base no servidor; histórico salvo |
 | 12 | Respostas sem IA para perguntas frequentes | ✅ | Proteína/água restantes, manhãs, evolução de gordura, comparação de proteína |
+| 5/7 | Refeições montadas por agente externo (colar JSON) e **Refeições salvas** | ✅ | Formato em `docs/FORMATO_AGENTE.md`. Itens associados à base; estimativa do agente só onde não há correspondência, marcada. Salvar refeição do diário; registrar de novo com um toque |
+| 5 | Rótulos transcritos por agente externo (colar JSON) | ✅ | Mesma conferência do cadastro de alimento |
 | 12 | IA externa por copiar e colar (Claude, ChatGPT, Gemini), sem chave de API | ✅ | Chat, frase, rótulo, exame e dieta. O app copia a pergunta (com instruções e formato JSON), abre o site/app e interpreta a resposta colada com os mesmos esquemas da IA integrada; sempre passa pela conferência. Nutrientes continuam vindo da base |
 | 13 | Importar dieta (foto/PDF/texto) e separar alternativas | 🟡 IA / ✅ texto local | Alternativas não são somadas (testado ponta a ponta) |
 | 13 | Calorias e macros por refeição, total, comparação com metas, pontos de atenção | ✅ | |

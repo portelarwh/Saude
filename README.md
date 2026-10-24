@@ -11,7 +11,7 @@ npm install
 npx expo start --web        # ou: npx expo start  (Android via development build)
 ```
 
-Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca na TACO, interpretação de frases pelo leitor local e respostas rápidas do assistente. Sem chave de API, dá para usar o **Claude, ChatGPT ou Gemini por copiar e colar**: o app prepara a pergunta, abre o site/app e interpreta a resposta colada (sempre com conferência). Para nuvem, login e IA, siga [docs/IMPLANTACAO.md](docs/IMPLANTACAO.md).
+Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca na TACO, interpretação de frases pelo leitor local e respostas rápidas do assistente. Sem chave de API, dá para usar o **Claude, ChatGPT ou Gemini por copiar e colar**: o app prepara a pergunta, abre o site/app e interpreta a resposta colada (sempre com conferência). Você também pode usar **o seu próprio agente de IA** para montar refeições e transcrever rótulos: copie as instruções em *Alimentação › Colar do agente* ([formato](docs/FORMATO_AGENTE.md)), cole as respostas no app e elas ficam em **Refeições salvas**. Para nuvem, login e IA integrada, siga [docs/IMPLANTACAO.md](docs/IMPLANTACAO.md).
 
 ## O que tem
 
@@ -25,7 +25,7 @@ Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca n
 ## Qualidade
 
 ```bash
-npm run check        # tipos + lint + 122 testes unitários (inclui os 15 cenários obrigatórios)
+npm run check        # tipos + lint + 137 testes unitários (inclui os 15 cenários obrigatórios)
 npm run test:db      # migrações e RLS em PostgreSQL real
 npm run test:e2e     # fluxo completo na versão web (Playwright/Chromium)
 ```

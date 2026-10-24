@@ -2,7 +2,8 @@
 
 - Regras de negócio ficam em `src/domain` (funções puras, sem React). Toda regra nova precisa de teste em `src/domain/__tests__` ou `src/services/__tests__`.
 - `null` = "não informado". Nunca converta ausência em zero; somas usam `sumNutrients` (conta itens sem dado).
-- Números nutricionais vêm de fontes (TACO, rótulo, OFF, USDA). A IA apenas extrai/identifica; nada extraído é salvo sem tela de conferência.
+- Números nutricionais vêm de fontes (TACO, rótulo, OFF, USDA). A IA apenas extrai/identifica; nada extraído é salvo sem tela de conferência. Exceção pedida pelo usuário: refeições coladas do agente externo (`src/domain/agentFormat.ts`) podem usar a estimativa do agente só para itens sem correspondência na base, sempre com `source: 'ai_estimate'`/`verification: 'estimated'` e sinalizadas na interface.
+- O formato do agente externo está em `AGENT_INSTRUCTIONS`; ao mudá-lo, rode `UPDATE_AGENT_DOC=1 npx jest agentDoc` para atualizar `docs/FORMATO_AGENTE.md`.
 - Metas: prioridade profissional > usuário > sistema (`mergeSystemSuggestions`, `setTarget`). Planos `locked` não podem ser alterados por automações.
 - Persistência sempre via `DataStore` (`useStore`, `useCollection`); não acesse AsyncStorage/Supabase direto nas telas.
 - Esquema do banco em `supabase/migrations` (snake_case, RLS por `user_id`). Ao mudar o esquema, atualize os tipos em `src/domain/types.ts` e rode `npm run test:db`.

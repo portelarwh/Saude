@@ -204,8 +204,44 @@ async function flow() {
     if (body.includes('999 kcal')) throw new Error('usou caloria vinda da IA externa');
     await shot('14-ia-externa');
   });
+  await step('colar refeição e rótulo do agente externo', async () => {
+    const meal = { formato: 'meu-equilibrio/v1', tipo: 'refeicao', nome: 'Almoço do agente', refeicao: 'almoco', itens: [
+      { alimento: 'arroz branco cozido', quantidade_g: 100, medida: '4 colheres de sopa' },
+      { alimento: 'peito de frango grelhado', quantidade_g: 120, nutrientes_estimados: { kcal: 999 } },
+      { alimento: 'molho especial da casa', quantidade_g: 20, nutrientes_estimados: { kcal: 40, proteina_g: 0.5, carboidrato_g: 3, gordura_g: 3 } },
+    ] };
+    const label = { formato: 'meu-equilibrio/v1', tipo: 'rotulo', produto: 'Iogurte Proteico Teste', marca: 'Marca', porcao: 170, unidade: 'g', medida_caseira: '1 pote', base: 'vendido', por_porcao: { kcal: 119, proteina_g: 15, carboidrato_g: 9.4, gordura_g: 2.4, sodio_mg: 85 } };
+    await page.goto(BASE + '/colar', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    await click('Ver formato');
+    if (!(await page.innerText('body')).includes('"tipo": "rotulo"')) throw new Error('formato não exibido');
+    await fill('Resposta do agente', 'Segue:\n```json\n' + JSON.stringify([meal, label]) + '\n```');
+    await click('Ler');
+    await page.waitForTimeout(600);
+    const body = await page.innerText('body');
+    if (!body.includes('Arroz, tipo 1, cozido') || !body.includes('Frango, peito, sem pele, grelhado')) throw new Error('itens não associados à TACO');
+    if (!body.includes('estimativa da IA externa')) throw new Error('estimativa não sinalizada');
+    if (body.includes('999')) throw new Error('usou caloria do agente para alimento da base');
+    await shot('15-colar-agente');
+    await click('Salvar e registrar agora');
+    await page.waitForTimeout(800);
+    await click('Conferir e salvar alimento');
+    await page.waitForTimeout(1000);
+    await click('Salvar alimento');
+    await page.waitForTimeout(1000);
+    await page.goto(BASE + '/refeicoes', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    const saved = await page.innerText('body');
+    if (!saved.includes('Almoço do agente') || !saved.includes('contém estimativas da IA')) throw new Error('refeição salva não aparece');
+    await shot('16-refeicoes');
+    await page.goto(BASE + '/adicionar?meal=lunch', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    await fill('Pesquisar alimento', 'iogurte proteico');
+    await page.waitForTimeout(500);
+    if (!(await page.innerText('body')).includes('Iogurte Proteico Teste')) throw new Error('rótulo colado não foi salvo como alimento');
+  });
   await step('telas secundárias abrem', async () => {
-    for (const r of ['agua', 'suplementos', 'receitas', 'receita', 'metas', 'perfil', 'notificacoes', 'privacidade', 'relatorios', 'dieta', 'atividade', 'fontes', 'atividades', 'alimento/novo', 'adicionar']) {
+    for (const r of ['colar', 'refeicoes', 'agua', 'suplementos', 'receitas', 'receita', 'metas', 'perfil', 'notificacoes', 'privacidade', 'relatorios', 'dieta', 'atividade', 'fontes', 'atividades', 'alimento/novo', 'adicionar']) {
       await page.goto(BASE + '/' + r, { waitUntil: 'networkidle' });
       await page.waitForTimeout(700);
       const body = await page.innerText('body');

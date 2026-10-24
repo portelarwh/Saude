@@ -18,7 +18,8 @@ export type TableName =
   | 'body_assessments'
   | 'notification_settings'
   | 'diet_plans'
-  | 'chat_messages';
+  | 'chat_messages'
+  | 'saved_meals';
 
 export const ALL_TABLES: TableName[] = [
   'profiles',
@@ -35,6 +36,7 @@ export const ALL_TABLES: TableName[] = [
   'notification_settings',
   'diet_plans',
   'chat_messages',
+  'saved_meals',
 ];
 
 type Scalar = string | number | boolean | null;

@@ -392,6 +392,31 @@ export interface ChatMessage extends BaseRow {
   meta: Record<string, unknown> | null;
 }
 
+/** Item de uma refeição salva: snapshot dos valores por 100 g/ml e da fonte. */
+export interface SavedMealItem {
+  food_name: string;
+  amount: number; // g ou ml
+  unit: BaseUnit;
+  measure: string | null; // "1 unidade", "4 colheres de sopa"
+  food_id: string | null; // null = estimativa externa sem alimento da base
+  per100: Nutrients;
+  source: FoodSource;
+  verification: Verification;
+  is_supplement: boolean;
+  serving_size: number | null;
+  compounds_per_serving: Record<string, number> | null;
+}
+
+/** Refeição montada (pelo agente de IA externo ou a partir do diário) guardada para reutilizar. */
+export interface SavedMeal extends BaseRow {
+  name: string;
+  meal: MealType | null;
+  items: SavedMealItem[];
+  origin: 'agent' | 'diary' | 'manual';
+  favorite: boolean;
+  notes: string | null;
+}
+
 export interface SupplementLog {
   supplement_food_id: string;
   doses: number;

@@ -7,7 +7,8 @@ import { formatCompounds } from '../../domain/compounds';
 import { copyEntries } from '../../domain/entries';
 import { planAdherence } from '../../domain/dietPlan';
 import { scalePer100, sumNutrients } from '../../domain/nutrients';
-import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type DietPlan, type MealType } from '../../domain/types';
+import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type DietPlan, type MealType, type SavedMeal } from '../../domain/types';
+import { savedMealFromEntries } from '../../domain/savedMeals';
 import { useStore } from '../../state/AppProvider';
 import { useCollection, useGoals, useToday } from '../../state/hooks';
 import { Badge, Button, Card, Divider, IconButton, ListItem, Notice, NumberField, Row, Screen, Sheet, T } from '../../ui/components';
@@ -37,6 +38,13 @@ export default function Diary() {
     const src = yesterday.filter((e) => e.meal === meal);
     if (!src.length) return;
     await store.insertMany<DiaryEntry>('diary_entries', copyEntries(src, { date }));
+  };
+
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const saveAsMeal = async (meal: MealType, list: DiaryEntry[]) => {
+    const name = `${MEAL_LABELS[meal]} de ${formatDateBR(date)}`;
+    await store.insert<SavedMeal>('saved_meals', savedMealFromEntries(name, list));
+    setSavedMsg(`“${name}” salva em Refeições salvas (renomeie lá se quiser).`);
   };
 
   const saveEdit = async () => {
@@ -77,6 +85,7 @@ export default function Diary() {
           {totals.missing.energy_kcal > 0 && dayEntries.length ? <T variant="tiny">{`${totals.missing.energy_kcal} item(ns) sem energia informada na fonte: total parcial.`}</T> : null}
         </Card>
 
+        {savedMsg ? <Notice kind="success">{savedMsg}</Notice> : null}
         {adherence ? (
           <Card onPress={() => router.push('/dieta')}>
             <Row style={{ justifyContent: 'space-between' }}>
@@ -112,11 +121,14 @@ export default function Diary() {
                 />
               ))}
               {canCopy ? <Button small variant="ghost" icon="copy-outline" title="Repetir de ontem" onPress={() => copyFromYesterday(meal)} /> : null}
+              {list.length ? <Button small variant="ghost" icon="bookmark-outline" title="Salvar como refeição" onPress={() => saveAsMeal(meal, list)} /> : null}
             </Card>
           );
         })}
 
         <Row wrap>
+          <Button small variant="secondary" icon="bookmark-outline" title="Refeições salvas" onPress={() => router.push({ pathname: '/refeicoes', params: { date } })} />
+          <Button small variant="secondary" icon="clipboard-outline" title="Colar do agente" onPress={() => router.push({ pathname: '/colar', params: { date } })} />
           <Button small variant="secondary" icon="book-outline" title="Receitas" onPress={() => router.push('/receitas')} />
           <Button small variant="secondary" icon="document-text-outline" title="Plano alimentar" onPress={() => router.push('/dieta')} />
           <Button small variant="secondary" icon="flask-outline" title="Suplementos" onPress={() => router.push('/suplementos')} />

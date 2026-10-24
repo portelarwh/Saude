@@ -144,6 +144,10 @@ function SearchTab({ onPick, date, meal }: { onPick: (f: Food) => void; date: st
               {userFoods.filter((f) => !f.is_supplement).slice(0, 15).map((f) => <FoodRow key={f.id} food={f} onPress={() => onPick(f)} />)}
             </Card>
           ) : null}
+          <Row wrap>
+            <Button small variant="secondary" icon="bookmark-outline" title="Refeições salvas" onPress={() => router.push({ pathname: '/refeicoes', params: { date, meal } })} />
+            <Button small variant="secondary" icon="clipboard-outline" title="Colar do agente" onPress={() => router.push({ pathname: '/colar', params: { date, meal } })} />
+          </Row>
           <Button variant="secondary" icon="create-outline" title="Cadastrar alimento" onPress={() => router.push({ pathname: '/alimento/novo', params: { date, meal } })} />
         </>
       )}
@@ -331,6 +335,7 @@ function LabelTab({ date, meal }: { date: string; meal: MealType }) {
         />
       ) : null}
       {error ? <Notice kind="error" action={<Button small variant="secondary" title="Digitar valores" onPress={() => router.push({ pathname: '/alimento/novo', params: { date, meal } })} />}>{error}</Notice> : null}
+      <Button variant="secondary" icon="clipboard-outline" title="Colar rótulo do meu agente de IA" onPress={() => router.push({ pathname: '/colar', params: { date, meal } })} />
       <Button variant="ghost" icon="create-outline" title="Digitar valores do rótulo" onPress={() => router.push({ pathname: '/alimento/novo', params: { date, meal } })} />
     </>
   );

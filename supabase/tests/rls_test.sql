@@ -25,6 +25,7 @@ insert into public.water_logs (date, logged_at, volume_ml, beverage) values ('20
 insert into public.body_assessments (measured_at, input, metrics) values (now(), 'manual', '{"weight_kg":{"value":70,"unit":"kg"}}');
 insert into public.foods (id, name, base_unit, source, verification, per100) values ('user:whey', 'Whey', 'g', 'label', 'reported', '{"protein_g":70}');
 insert into storage.objects (bucket_id, name) values ('health-files', '11111111-1111-1111-1111-111111111111/exames/a.pdf');
+insert into public.saved_meals (name, items) values ('Café proteico', '[]');
 select pg_temp.assert((select count(*) from public.water_logs) = 1, 'Ana vê o próprio registro de água');
 reset role;
 
@@ -34,6 +35,7 @@ select pg_temp.assert((select count(*) from public.profiles) = 0, 'Bruno não l�
 select pg_temp.assert((select count(*) from public.water_logs) = 0, 'Bruno não lê a água de Ana');
 select pg_temp.assert((select count(*) from public.body_assessments) = 0, 'Bruno não lê exames de Ana');
 select pg_temp.assert((select count(*) from public.foods) = 0, 'Bruno não lê alimentos de Ana');
+select pg_temp.assert((select count(*) from public.saved_meals) = 0, 'Bruno não lê refeições salvas de Ana');
 select pg_temp.assert((select count(*) from storage.objects) = 0, 'Bruno não lista arquivos de Ana');
 select pg_temp.assert((select count(*) from public.audit_log) = 0, 'Bruno não lê o histórico de Ana');
 
