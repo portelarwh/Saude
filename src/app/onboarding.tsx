@@ -4,7 +4,7 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ACTIVITY_FACTORS, bmi, bmiCategory } from '../domain/energy';
 import { assessTimeline, calculateGoals, combineObjectives, GOAL_KEYS, GOAL_LABELS, normalizeHeightCm, profileObjectives } from '../domain/goals';
@@ -158,6 +158,7 @@ export default function Onboarding() {
 
         {step === 0 && (
           <>
+            <Image source={require('../../assets/logo.png')} style={{ width: 220, height: 220, alignSelf: 'center' }} accessibilityLabel="Logo do Meu Equilíbrio" />
             <T variant="h1">Bem-vindo ao Meu Equilíbrio</T>
             <T>
               Vamos configurar seu acompanhamento: perda de gordura com preservação de massa muscular, proteína, hidratação e atividade física. Leva cerca de 3 minutos e só pedimos o essencial.
