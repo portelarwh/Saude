@@ -43,7 +43,10 @@ export interface Profile extends BaseRow {
   activity_level: ActivityLevel | null;
   work_routine: string | null;
   does_resistance_training: boolean | null;
+  /** Objetivo usado no cálculo das metas (derivado de `objectives`). */
   objective: Objective | null;
+  /** Objetivos marcados pelo usuário (pode haver mais de um). */
+  objectives: Objective[];
   target_date: ISODate | null;
   wake_time: string | null; // HH:MM
   sleep_time: string | null;

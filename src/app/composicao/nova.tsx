@@ -16,7 +16,7 @@ import type { BioimpedanceExtraction } from '../../../supabase/functions/_shared
 import { ExternalAiPanel } from '../../ui/ExternalAi';
 import { useApp, useStore } from '../../state/AppProvider';
 import { useProfile } from '../../state/hooks';
-import { Badge, Button, Card, Chip, ChipSelect, Field, Notice, NumberField, Row, Screen, T, Toggle } from '../../ui/components';
+import { Badge, Button, Card, Chip, ChipSelect, DateField, Field, Notice, NumberField, Row, Screen, T, Toggle } from '../../ui/components';
 import { num } from '../../ui/format';
 
 const SEGMENT_LABELS = { right_arm: 'Braço direito', left_arm: 'Braço esquerdo', trunk: 'Tronco', right_leg: 'Perna direita', left_leg: 'Perna esquerda' } as const;
@@ -143,7 +143,7 @@ export default function NewAssessment() {
       <Card>
         <T variant="h3">Dados da avaliação</T>
         <Row>
-          <Field label="Data original do exame" value={dateText} onChangeText={setDateText} placeholder="DD/MM/AAAA" style={{ flex: 1 }} />
+          <DateField label="Data original do exame" value={dateText} onChangeText={setDateText} style={{ flex: 1 }} />
           <Field label="Horário" value={timeText} onChangeText={setTimeText} placeholder="HH:MM" style={{ width: 110 }} />
         </Row>
         <Row>

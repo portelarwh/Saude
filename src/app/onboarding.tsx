@@ -7,16 +7,17 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ACTIVITY_FACTORS, bmi, bmiCategory } from '../domain/energy';
-import { assessTimeline, calculateGoals, GOAL_KEYS, GOAL_LABELS } from '../domain/goals';
+import { assessTimeline, calculateGoals, combineObjectives, GOAL_KEYS, GOAL_LABELS, normalizeHeightCm, profileObjectives } from '../domain/goals';
 import { formatDateBR, isValidTime, parseBRDate } from '../domain/dates';
 import { defaultSettings } from '../domain/notifications';
 import type { BodyAssessment, Container, NotificationSetting, Profile, Sex, WeightEntry } from '../domain/types';
 import { useApp, useStore } from '../state/AppProvider';
 import { emptyProfile, useGoals, useProfile } from '../state/hooks';
 import { recalculateGoals } from '../services/goalsService';
-import { Button, Card, ChipSelect, Field, MultiChipSelect, Notice, NumberField, ProgressBar, Row, Screen, T, Toggle } from '../ui/components';
+import { Button, Card, ChipSelect, DateField, Field, HeightField, MultiChipSelect, Notice, NumberField, ProgressBar, Row, Screen, T, Toggle } from '../ui/components';
 import { num } from '../ui/format';
-import { ACTIVITY_OPTIONS, HEALTH_FLAGS, OBJECTIVES, RESTRICTIONS } from '../ui/labels';
+import { ACTIVITY_OPTIONS, HEALTH_FLAGS, RESTRICTIONS } from '../ui/labels';
+import { ObjectivesSelect } from '../ui/ObjectivesSelect';
 import { spacing, useTheme } from '../ui/theme';
 
 const STEPS = ['Boas-vindas', 'Dados corporais', 'Rotina e objetivo', 'Horários', 'Alimentação', 'Saúde', 'Suas metas'];
@@ -73,7 +74,9 @@ export default function Onboarding() {
     if (step === 1) {
       if (!p.name.trim()) return 'Informe seu nome.';
       if (birthText && !parseBRDate(birthText)) return 'Data de nascimento inválida (use DD/MM/AAAA).';
-      if (!p.height_cm || p.height_cm < 100 || p.height_cm > 250) return 'Informe a altura em centímetros (ex.: 165).';
+      const h = normalizeHeightCm(p.height_cm);
+      if (!h || h < 100 || h > 250) return 'Informe a altura em centímetros (ex.: 165).';
+      if (h !== p.height_cm) set('height_cm', h);
       if (!p.current_weight_kg || p.current_weight_kg < 30 || p.current_weight_kg > 350) return 'Informe o peso atual em kg.';
     }
     if (step === 2 && targetDateText && !parseBRDate(targetDateText)) return 'Prazo inválido (use DD/MM/AAAA).';
@@ -98,6 +101,8 @@ export default function Onboarding() {
       const profile = await save({
         ...p,
         name: p.name.trim(),
+        height_cm: normalizeHeightCm(p.height_cm),
+        objectives: profileObjectives(p),
         birth_date: parseBRDate(birthText),
         target_date: parseBRDate(targetDateText),
         allergies: splitList(allergiesText),
@@ -193,7 +198,7 @@ export default function Onboarding() {
               />
             </Card>
             <Field label="Nome" value={p.name} onChangeText={(t) => set('name', t)} autoComplete="name" />
-            <Field label="Data de nascimento" value={birthText} onChangeText={setBirthText} placeholder="DD/MM/AAAA" keyboardType="numbers-and-punctuation" hint="Usada na equação de metabolismo basal" />
+            <DateField label="Data de nascimento" value={birthText} onChangeText={setBirthText} hint="Digite só os números, ex.: 14071985 → 14/07/1985" />
             <ChipSelect<Sex>
               label="Sexo biológico (usado apenas nas equações)"
               options={[{ value: 'female', label: 'Feminino' }, { value: 'male', label: 'Masculino' }]}
@@ -201,7 +206,7 @@ export default function Onboarding() {
               onChange={(v) => set('sex', v)}
             />
             <Row>
-              <NumberField label="Altura" suffix="cm" value={p.height_cm} onChange={(v) => set('height_cm', v)} style={{ flex: 1 }} />
+              <HeightField label="Altura (cm)" value={p.height_cm} onChange={(v) => set('height_cm', v)} style={{ flex: 1 }} />
               <NumberField label="Peso atual" suffix="kg" value={p.current_weight_kg} onChange={(v) => set('current_weight_kg', v)} style={{ flex: 1 }} />
             </Row>
             {bmiValue ? <T variant="small">{`IMC ${num(bmiValue, 1)} · ${bmiCategory(bmiValue)} (o IMC é um indicador populacional e não avalia composição corporal)`}</T> : null}
@@ -216,12 +221,12 @@ export default function Onboarding() {
         {step === 2 && (
           <>
             <T variant="h2">Rotina e objetivo</T>
-            <ChipSelect label="Objetivo" options={OBJECTIVES} value={p.objective} onChange={(v) => set('objective', v)} />
+            <ObjectivesSelect value={profileObjectives(p)} onChange={(list) => setP((cur) => ({ ...cur, objectives: list, objective: combineObjectives(list) }))} />
             <ChipSelect label="Nível de atividade física" options={ACTIVITY_OPTIONS} value={p.activity_level} onChange={(v) => set('activity_level', v)} />
             {p.activity_level ? <T variant="small">{ACTIVITY_FACTORS[p.activity_level].description}</T> : null}
             <Toggle label="Faço treino de força (musculação ou similar)" value={Boolean(p.does_resistance_training)} onChange={(v) => set('does_resistance_training', v)} />
             <Field label="Rotina de trabalho (opcional)" value={p.work_routine ?? ''} onChangeText={(t) => set('work_routine', t)} placeholder="Ex.: escritório, 8h às 17h; turnos; home office" />
-            <Field label="Prazo desejado (opcional)" value={targetDateText} onChangeText={setTargetDateText} placeholder="DD/MM/AAAA" keyboardType="numbers-and-punctuation" />
+            <DateField label="Prazo desejado (opcional)" value={targetDateText} onChangeText={setTargetDateText} />
             {timeline && timeline.status !== 'not_applicable' ? (
               <Notice kind={timeline.status === 'ok' ? 'success' : timeline.status === 'aggressive' ? 'warning' : 'error'} title="Viabilidade do prazo">
                 {timeline.message}

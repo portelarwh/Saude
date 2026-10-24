@@ -91,6 +91,14 @@ update public.profiles set name = 'Ana Maria' where id = '11111111-1111-1111-111
 select pg_temp.assert(
   (select changed_columns = array['name'] and old_row is null from public.audit_log where table_name = 'profiles' limit 1),
   'alteração de perfil registrada sem copiar dados sensíveis');
+update public.profiles set objectives = array['fat_loss', 'muscle_gain'], objective = 'recomposition';
+do $$
+begin
+  update public.profiles set objectives = array['dieta_magica'];
+  raise exception 'FALHOU: objetivo inválido aceito';
+exception when check_violation then
+  raise notice 'ok - objetivos aceitam só valores conhecidos';
+end $$;
 insert into public.diet_plans (name, origin, locked, meals) values ('Plano da nutri', 'professional', true, '[]');
 do $$
 begin

@@ -57,6 +57,7 @@ export function buildAiContext(i: ContextInput): Record<string, unknown> {
           peso_atual_kg: p.current_weight_kg,
           peso_desejado_kg: p.target_weight_kg,
           objetivo: p.objective,
+          objetivos_marcados: p.objectives ?? (p.objective ? [p.objective] : []),
           nivel_atividade: p.activity_level,
           treino_de_forca: p.does_resistance_training,
           restricoes: p.food_restrictions,

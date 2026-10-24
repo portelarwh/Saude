@@ -60,9 +60,31 @@ export function weekdayLabel(index: number): string {
   return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][index];
 }
 
-/** "DD/MM/AAAA" -> "AAAA-MM-DD" (null se inválida). */
+/**
+ * Formata a digitação como DD/MM/AAAA: "14071985" → "14/07/1985".
+ * Aceita também separadores digitados (".", "-", "/").
+ */
+export function maskBRDate(text: string): string {
+  const parts = ['', '', ''];
+  const max = [2, 2, 4];
+  let i = 0;
+  for (const ch of text) {
+    if (/\d/.test(ch)) {
+      if (i < 2 && parts[i].length === max[i]) i++;
+      if (parts[i].length < max[i]) parts[i] += ch;
+    } else if (/[/.\-\s]/.test(ch) && i < 2 && parts[i]) {
+      // "1/7/1985": completa dia e mês com zero
+      parts[i] = parts[i].padStart(2, '0');
+      i++;
+    }
+  }
+  return parts.slice(0, i + 1).join('/');
+}
+
+/** "DD/MM/AAAA" (ou "DDMMAAAA") -> "AAAA-MM-DD" (null se inválida). */
 export function parseBRDate(text: string): ISODate | null {
-  const m = text.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const t = text.trim();
+  const m = maskBRDate(t).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!m) return null;
   const [d, mo, y] = [Number(m[1]), Number(m[2]), Number(m[3])];
   const date = new Date(y, mo - 1, d);

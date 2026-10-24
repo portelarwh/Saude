@@ -5,7 +5,7 @@ import type { Profile, WeightEntry } from '../domain/types';
 import { useStore } from '../state/AppProvider';
 import { useCollection, useGoals, useProfile } from '../state/hooks';
 import { recalculateGoals } from '../services/goalsService';
-import { Button, Card, Field, ListItem, Notice, NumberField, Row, Screen, T } from '../ui/components';
+import { Button, Card, DateField, Field, ListItem, Notice, NumberField, Row, Screen, T } from '../ui/components';
 import { confirmAction } from '../ui/confirm';
 import { num } from '../ui/format';
 
@@ -40,7 +40,7 @@ export default function Weight() {
       <Card>
         <Row>
           <NumberField label="Peso" suffix="kg" value={value} onChange={setValue} style={{ flex: 1 }} />
-          <Field label="Data" value={dateText} onChangeText={setDateText} style={{ flex: 1 }} />
+          <DateField label="Data" value={dateText} onChangeText={setDateText} style={{ flex: 1 }} />
         </Row>
         <Field label="Observação (opcional)" value={note} onChangeText={setNote} placeholder="Ex.: em jejum, após o banheiro" />
         {error ? <Notice kind="error">{error}</Notice> : null}

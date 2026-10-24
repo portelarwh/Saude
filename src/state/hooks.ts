@@ -74,6 +74,7 @@ export function emptyProfile(): Omit<Profile, 'id' | 'user_id' | 'created_at'> {
     work_routine: null,
     does_resistance_training: null,
     objective: null,
+    objectives: [],
     target_date: null,
     wake_time: '07:00',
     sleep_time: '23:00',

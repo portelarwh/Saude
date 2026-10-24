@@ -83,6 +83,32 @@ export function referenceWeight(weightKg: number, heightCm: number | null): { kg
   return { kg: weightKg, explanation: `Peso atual (${weightKg} kg), IMC ${round(currentBmi, 1)}.` };
 }
 
+/**
+ * Vários objetivos marcados viram um objetivo para o cálculo das metas:
+ * emagrecer + ganhar massa = recomposição; emagrecer prevalece sobre manter;
+ * ganhar massa prevalece sobre manter.
+ */
+export function combineObjectives(list: readonly Objective[] | null | undefined): Objective | null {
+  const set = new Set(list ?? []);
+  if (!set.size) return null;
+  if (set.has('recomposition') || (set.has('fat_loss') && set.has('muscle_gain'))) return 'recomposition';
+  if (set.has('fat_loss')) return 'fat_loss';
+  if (set.has('muscle_gain')) return 'muscle_gain';
+  return 'maintenance';
+}
+
+/** Objetivos marcados no perfil (perfis antigos tinham só `objective`). */
+export function profileObjectives(p: Pick<Profile, 'objective'> & { objectives?: Objective[] | null }): Objective[] {
+  if (p.objectives?.length) return p.objectives;
+  return p.objective ? [p.objective] : [];
+}
+
+/** Altura sempre em centímetros; "1,75" (metros) vira 175. */
+export function normalizeHeightCm(value: number | null): number | null {
+  if (value === null || !Number.isFinite(value) || value <= 0) return null;
+  return value < 3 ? round(value * 100, 1) : value;
+}
+
 export function proteinFactor(objective: Objective, resistanceTraining: boolean): { factor: number; range: [number, number] } {
   switch (objective) {
     case 'fat_loss':

@@ -1,13 +1,15 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ACTIVITY_FACTORS } from '../domain/energy';
+import { combineObjectives, normalizeHeightCm, profileObjectives } from '../domain/goals';
 import { formatDateBR, parseBRDate } from '../domain/dates';
 import type { Profile, Sex } from '../domain/types';
 import { recalculateGoals } from '../services/goalsService';
 import { useApp, useStore } from '../state/AppProvider';
 import { useGoals, useProfile } from '../state/hooks';
-import { Button, Card, ChipSelect, Divider, Field, ListItem, MultiChipSelect, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
-import { ACTIVITY_OPTIONS, HEALTH_FLAGS, OBJECTIVES, RESTRICTIONS } from '../ui/labels';
+import { Button, Card, ChipSelect, DateField, Divider, Field, HeightField, ListItem, MultiChipSelect, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
+import { ACTIVITY_OPTIONS, HEALTH_FLAGS, RESTRICTIONS } from '../ui/labels';
+import { ObjectivesSelect } from '../ui/ObjectivesSelect';
 
 export default function ProfileScreen() {
   const { profile } = useProfile();
@@ -31,7 +33,7 @@ function ProfileForm({ initial }: { initial: Profile }) {
   const submit = async () => {
     setMsg(null);
     if (birth && !parseBRDate(birth)) return setMsg('Data de nascimento inválida.');
-    const updated = await save({ ...p, birth_date: parseBRDate(birth), target_date: parseBRDate(target) });
+    const updated = await save({ ...p, height_cm: normalizeHeightCm(p.height_cm), objectives: profileObjectives(p), birth_date: parseBRDate(birth), target_date: parseBRDate(target) });
     await recalculateGoals(store, updated, goalSet, 'Perfil atualizado');
     setMsg('Perfil salvo. Metas sugeridas recalculadas (metas suas ou prescritas foram mantidas).');
   };
@@ -64,15 +66,15 @@ function ProfileForm({ initial }: { initial: Profile }) {
       <Card>
         <T variant="h3">Dados pessoais</T>
         <Field label="Nome" value={p.name} onChangeText={(t) => set('name', t)} />
-        <Field label="Data de nascimento" value={birth} onChangeText={setBirth} placeholder="DD/MM/AAAA" />
+        <DateField label="Data de nascimento" value={birth} onChangeText={setBirth} />
         <ChipSelect<Sex> label="Sexo biológico (equações)" options={[{ value: 'female', label: 'Feminino' }, { value: 'male', label: 'Masculino' }]} value={p.sex} onChange={(v) => set('sex', v)} />
         <Row>
-          <NumberField label="Altura" suffix="cm" value={p.height_cm} onChange={(v) => set('height_cm', v)} style={{ flex: 1 }} />
+          <HeightField label="Altura (cm)" value={p.height_cm} onChange={(v) => set('height_cm', v)} style={{ flex: 1 }} />
           <NumberField label="Peso atual" suffix="kg" value={p.current_weight_kg} onChange={(v) => set('current_weight_kg', v)} style={{ flex: 1 }} />
         </Row>
         <Row>
           <NumberField label="Peso desejado" suffix="kg" value={p.target_weight_kg} onChange={(v) => set('target_weight_kg', v)} style={{ flex: 1 }} />
-          <Field label="Prazo" value={target} onChangeText={setTarget} placeholder="DD/MM/AAAA" style={{ flex: 1 }} />
+          <DateField label="Prazo" value={target} onChangeText={setTarget} style={{ flex: 1 }} />
         </Row>
         <Row>
           <NumberField label="Cintura" suffix="cm" value={p.waist_cm} onChange={(v) => set('waist_cm', v)} style={{ flex: 1 }} />
@@ -82,7 +84,7 @@ function ProfileForm({ initial }: { initial: Profile }) {
 
       <Card>
         <T variant="h3">Rotina e objetivo</T>
-        <ChipSelect label="Objetivo" options={OBJECTIVES} value={p.objective} onChange={(v) => set('objective', v)} />
+        <ObjectivesSelect value={profileObjectives(p)} onChange={(list) => setP({ ...p, objectives: list, objective: combineObjectives(list) })} />
         <ChipSelect label="Atividade" options={ACTIVITY_OPTIONS} value={p.activity_level} onChange={(v) => set('activity_level', v)} />
         {p.activity_level ? <T variant="tiny">{ACTIVITY_FACTORS[p.activity_level].description}</T> : null}
         <Toggle label="Faço treino de força" value={Boolean(p.does_resistance_training)} onChange={(v) => set('does_resistance_training', v)} />

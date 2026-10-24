@@ -51,16 +51,22 @@ async function flow() {
   });
   await step('dados corporais', async () => {
     await fill('Nome', 'Ana Teste');
-    await fill('Data de nascimento', '19/10/1986');
+    await page.getByLabel('Data de nascimento', { exact: true }).pressSequentially('19101986');
+    const birth = await page.getByLabel('Data de nascimento', { exact: true }).inputValue();
+    if (birth !== '19/10/1986') throw new Error('máscara de data: ' + birth);
     await click('Feminino');
-    await fill('Altura', '165');
+    await fill('Altura (cm)', '1,65');
     await fill('Peso atual', '80');
+    const height = await page.getByLabel('Altura (cm)', { exact: true }).inputValue();
+    if (height !== '165') throw new Error('altura em metros não convertida: ' + height);
     await fill('Peso desejado (opcional)', '70');
     await shot('01-dados');
     await click('Continuar');
   });
   await step('objetivo', async () => {
     await click('Emagrecimento');
+    await click('Ganho de massa muscular');
+    if (!/seguem: Recomposição corporal/.test(await page.innerText('body'))) throw new Error('combinação de objetivos ausente');
     await click('Levemente ativo');
     await page.getByRole('switch').first().click();
     await click('Continuar');

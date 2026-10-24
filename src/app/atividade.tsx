@@ -5,7 +5,7 @@ import { formatDateBR, isValidTime, parseBRDate } from '../domain/dates';
 import type { ActivityLog, ActivityType, Intensity } from '../domain/types';
 import { useStore } from '../state/AppProvider';
 import { useProfile } from '../state/hooks';
-import { Button, Card, ChipSelect, Field, Notice, NumberField, Row, Screen, T } from '../ui/components';
+import { Button, Card, ChipSelect, DateField, Field, Notice, NumberField, Row, Screen, T } from '../ui/components';
 
 export default function NewActivity() {
   const router = useRouter();
@@ -54,7 +54,7 @@ export default function NewActivity() {
       {type === 'other' ? <Field label="Nome da atividade" value={custom} onChangeText={setCustom} /> : null}
       <Card>
         <Row>
-          <Field label="Data" value={dateText} onChangeText={setDateText} style={{ flex: 1 }} />
+          <DateField label="Data" value={dateText} onChangeText={setDateText} style={{ flex: 1 }} />
           <Field label="Início" value={timeText} onChangeText={setTimeText} style={{ width: 110 }} />
         </Row>
         <Row>

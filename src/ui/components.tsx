@@ -19,6 +19,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { maskBRDate } from '../domain/dates';
+import { normalizeHeightCm } from '../domain/goals';
 import { font, radius, spacing, useTheme } from './theme';
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -165,6 +167,28 @@ export function NumberField({ value, onChange, ...rest }: Omit<React.ComponentPr
       onChangeText={(t) => {
         setText(t);
         onChange(parseDecimal(t));
+      }}
+    />
+  );
+}
+
+/** Data DD/MM/AAAA: digite só os números ("14071985") e as barras entram sozinhas. */
+export function DateField({ value, onChangeText, ...rest }: Omit<React.ComponentProps<typeof Field>, 'keyboardType' | 'maxLength'> & { value: string; onChangeText: (t: string) => void }) {
+  return <Field placeholder="DD/MM/AAAA" {...rest} value={value} keyboardType="number-pad" maxLength={10} onChangeText={(t) => onChangeText(maskBRDate(t))} />;
+}
+
+/** Altura em centímetros; se digitar em metros (1,75), converte para 175 ao sair do campo. */
+export function HeightField({ value, onChange, ...rest }: Omit<React.ComponentProps<typeof NumberField>, 'suffix'>) {
+  return (
+    <NumberField
+      placeholder="Ex.: 175"
+      {...rest}
+      suffix="cm"
+      value={value}
+      onChange={onChange}
+      onBlur={() => {
+        const cm = normalizeHeightCm(value ?? null);
+        if (cm !== (value ?? null)) onChange(cm);
       }}
     />
   );
