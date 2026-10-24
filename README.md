@@ -4,6 +4,14 @@ Aplicativo pessoal (Android-first, também PWA) para emagrecimento saudável com
 
 > O app oferece orientações gerais e estimativas. Não faz diagnósticos e não substitui médico ou nutricionista.
 
+## Abrir o app no celular ou no computador
+
+**https://portelarwh.github.io/Saude/**
+
+Para o link funcionar (uma única vez): no GitHub, abra *Settings › Pages › Build and deployment* e em **Source** escolha **GitHub Actions**. O workflow *Publicar app web* publica o app automaticamente a cada atualização (veja a aba *Actions*). No celular, abra o link no Chrome e use *Adicionar à tela inicial* para usar como aplicativo.
+
+Na versão web os dados ficam no próprio navegador do aparelho (modo local). Lembretes agendados funcionam apenas no aplicativo Android.
+
 ## Começar em 1 minuto (modo local, sem configuração)
 
 ```bash
@@ -25,7 +33,7 @@ Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca n
 ## Qualidade
 
 ```bash
-npm run check        # tipos + lint + 137 testes unitários (inclui os 15 cenários obrigatórios)
+npm run check        # tipos + lint + 142 testes unitários (inclui os 15 cenários obrigatórios)
 npm run test:db      # migrações e RLS em PostgreSQL real
 npm run test:e2e     # fluxo completo na versão web (Playwright/Chromium)
 ```

@@ -9,7 +9,6 @@ import { LineChart } from '../../ui/charts';
 import { Button, Card, Chip, EmptyState, ListItem, Row, Screen, SectionHeader, T } from '../../ui/components';
 import { ComparisonView } from '../../ui/ComparisonView';
 import { num, signed } from '../../ui/format';
-import { QuickAdd } from '../../ui/QuickAdd';
 import { useTheme } from '../../ui/theme';
 
 const CHART_METRICS: BodyMetricKey[] = ['fat_mass_kg', 'body_fat_pct', 'skeletal_muscle_mass_kg', 'fat_free_mass_kg', 'visceral_fat_level', 'total_body_water_l', 'waist_cm'];
@@ -111,7 +110,6 @@ export default function Evolution() {
           </>
         )}
       </Screen>
-      <QuickAdd />
     </View>
   );
 }

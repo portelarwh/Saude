@@ -22,10 +22,16 @@ export interface Palette {
   infoSoft: string;
   /** Cores de séries de gráfico (validadas para daltonismo e contraste). */
   chart: { primary: string; water: string; accent: string; grid: string };
+  /** Identidade dos macros (validada; sempre acompanhada de rótulo). */
+  macro: { protein: string; carbs: string; fat: string };
+  /** Fundo do cartão de destaque (calorias). */
+  hero: string;
+  heroText: string;
+  shadow: string;
 }
 
 export const light: Palette = {
-  bg: '#F4F7F3',
+  bg: '#F3F6F4',
   surface: '#FFFFFF',
   surfaceAlt: '#EBF1EC',
   text: '#13201A',
@@ -45,6 +51,10 @@ export const light: Palette = {
   info: '#2B5C8A',
   infoSoft: '#E3EEF8',
   chart: { primary: '#15834F', water: '#2563A8', accent: '#B7791F', grid: '#E3EAE4' },
+  macro: { protein: '#15834F', carbs: '#C98A1A', fat: '#8E56D6' },
+  hero: '#1C5E3F',
+  heroText: '#FFFFFF',
+  shadow: '#0B2A1C',
 };
 
 export const dark: Palette = {
@@ -68,10 +78,14 @@ export const dark: Palette = {
   info: '#8DB9E6',
   infoSoft: '#1A2A3A',
   chart: { primary: '#3DAA74', water: '#4F8FDB', accent: '#B98128', grid: '#26332B' },
+  macro: { protein: '#3DAA74', carbs: '#B98128', fat: '#A47BE8' },
+  hero: '#173A2A',
+  heroText: '#E7EFE9',
+  shadow: '#000000',
 };
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
-export const radius = { sm: 8, md: 12, lg: 18, pill: 999 };
+export const radius = { sm: 10, md: 14, lg: 22, pill: 999 };
 export const font = {
   h1: 26,
   h2: 20,

@@ -212,3 +212,125 @@ export function Ring({ pct, size = 104, color, children, label }: { pct: number 
     </View>
   );
 }
+
+/**
+ * Barras por dia com linha de meta tracejada. `value: null` = dia sem
+ * registro (sem barra, marcado com "–"), nunca zero.
+ */
+export function GoalBarChart({ data, goal, unit, color, title, height = 170 }: {
+  data: { label: string; value: number | null }[];
+  goal: number | null;
+  unit: string;
+  color: string;
+  title: string;
+  height?: number;
+}) {
+  const { colors } = useTheme();
+  const [width, setWidth] = useState(320);
+  const [active, setActive] = useState<number | null>(null);
+  const top = 14;
+  const bottom = 20;
+  const values = data.map((d) => d.value ?? 0);
+  const max = Math.max(1, goal ?? 0, ...values) * 1.1;
+  const plotH = height - top - bottom;
+  const gap = data.length > 14 ? 2 : 8;
+  const bw = Math.max(4, (width - gap * (data.length - 1)) / Math.max(1, data.length));
+  const y = (v: number) => top + plotH - (v / max) * plotH;
+  const logged = data.filter((d) => d.value !== null);
+  const avg = logged.length ? logged.reduce((s, d) => s + (d.value ?? 0), 0) / logged.length : null;
+  return (
+    <View style={{ gap: spacing.xs }}>
+      <View
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+        accessible
+        accessibilityLabel={`${title}: ${logged.length} dias com registro${avg !== null ? `, média ${Math.round(avg)} ${unit}` : ''}${goal ? `, meta ${Math.round(goal)} ${unit}` : ''}`}
+      >
+        <Svg width={width} height={height}>
+          <Line x1={0} x2={width} y1={top + plotH} y2={top + plotH} stroke={colors.chart.grid} strokeWidth={1} />
+          {data.map((d, i) => {
+            const x = i * (bw + gap);
+            const v = d.value;
+            const over = goal !== null && v !== null && v > goal * 1.05;
+            return (
+              <G key={i} onPress={() => setActive(i)}>
+                <Rect x={x} y={top} width={bw} height={plotH} fill="transparent" />
+                {v !== null && v > 0 ? (
+                  <Rect x={x} y={y(v)} width={bw} height={top + plotH - y(v)} rx={Math.min(4, bw / 2)} fill={color} opacity={active === null || active === i ? (over ? 0.6 : 1) : 0.45} />
+                ) : v === null ? (
+                  <SvgText x={x + bw / 2} y={top + plotH - 4} fontSize={10} fill={colors.muted} textAnchor="middle">
+                    –
+                  </SvgText>
+                ) : null}
+                {data.length <= 10 || i % Math.ceil(data.length / 8) === 0 ? (
+                  <SvgText x={x + bw / 2} y={height - 5} fontSize={10} fill={colors.muted} textAnchor="middle">
+                    {d.label}
+                  </SvgText>
+                ) : null}
+              </G>
+            );
+          })}
+          {goal ? <Line x1={0} x2={width} y1={y(goal)} y2={y(goal)} stroke={colors.textSecondary} strokeWidth={1.5} strokeDasharray="5 4" /> : null}
+        </Svg>
+      </View>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <T variant="small">
+          {active !== null ? `${data[active].label}: ${data[active].value === null ? 'sem registro' : `${Math.round(data[active].value!)} ${unit}`}` : avg !== null ? `Média: ${Math.round(avg)} ${unit} (${logged.length} dias com registro)` : 'Sem registros no período'}
+        </T>
+        {goal ? <T variant="tiny">{`- - meta ${Math.round(goal)} ${unit}`}</T> : null}
+      </Row>
+    </View>
+  );
+}
+
+/** Rosca de distribuição (ex.: % das calorias por macro), com rótulos em texto. */
+export function Donut({ parts, size = 132, centerLabel, centerSub }: { parts: { label: string; value: number; color: string }[]; size?: number; centerLabel: string; centerSub?: string }) {
+  const { colors } = useTheme();
+  const stroke = 18;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const total = parts.reduce((s, p) => s + p.value, 0);
+  let offset = 0;
+  return (
+    <Row gap={spacing.lg}>
+      <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }} accessible accessibilityLabel={parts.map((p) => `${p.label} ${total ? Math.round((p.value / total) * 100) : 0}%`).join(', ')}>
+        <Svg width={size} height={size} style={{ position: 'absolute' }}>
+          <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.surfaceAlt} strokeWidth={stroke} fill="none" />
+          {total > 0
+            ? parts.map((p) => {
+                const len = (p.value / total) * c;
+                const el = (
+                  <Circle
+                    key={p.label}
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={r}
+                    stroke={p.color}
+                    strokeWidth={stroke}
+                    fill="none"
+                    strokeDasharray={`${Math.max(0, len - 2)} ${c}`}
+                    strokeDashoffset={-offset}
+                    transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                  />
+                );
+                offset += len;
+                return el;
+              })
+            : null}
+        </Svg>
+        <T variant="h3">{centerLabel}</T>
+        {centerSub ? <T variant="tiny">{centerSub}</T> : null}
+      </View>
+      <View style={{ flex: 1, gap: spacing.sm }}>
+        {parts.map((p) => (
+          <Row key={p.label} style={{ justifyContent: 'space-between' }}>
+            <Row gap={6}>
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: p.color }} />
+              <T variant="small">{p.label}</T>
+            </Row>
+            <T variant="small">{total ? `${Math.round((p.value / total) * 100)}%` : '—'}</T>
+          </Row>
+        ))}
+      </View>
+    </Row>
+  );
+}

@@ -13,7 +13,6 @@ import { useStore } from '../../state/AppProvider';
 import { useCollection, useGoals, useToday } from '../../state/hooks';
 import { Badge, Button, Card, Divider, IconButton, ListItem, Notice, NumberField, Row, Screen, Sheet, T } from '../../ui/components';
 import { num, SOURCE_LABEL, VERIFICATION_LABEL } from '../../ui/format';
-import { QuickAdd } from '../../ui/QuickAdd';
 import { useTheme } from '../../ui/theme';
 
 export default function Diary() {
@@ -134,7 +133,6 @@ export default function Diary() {
           <Button small variant="secondary" icon="flask-outline" title="Suplementos" onPress={() => router.push('/suplementos')} />
         </Row>
       </Screen>
-      <QuickAdd />
 
       <Sheet visible={Boolean(editing)} onClose={() => setEditing(null)} title="Editar item">
         {editing ? (

@@ -365,7 +365,13 @@ export function Loading() {
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.lg, gap: spacing.md },
+  card: {
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.lg,
+    gap: spacing.md,
+    boxShadow: '0px 4px 14px rgba(11, 42, 28, 0.07)',
+  },
   button: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   buttonSmall: { minHeight: 36, paddingHorizontal: spacing.md, borderRadius: radius.sm },
   iconButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

@@ -150,3 +150,31 @@ export function toCSV(rows: Record<string, unknown>[]): string {
   };
   return [headers.join(';'), ...rows.map((r) => headers.map((h) => esc(r[h])).join(';'))].join('\n');
 }
+
+/** Série diária de um nutriente; `null` = dia sem registro (não zero). */
+export function dailyNutrientSeries(entries: Pick<DiaryEntry, 'date' | 'nutrients'>[], from: ISODate, to: ISODate, key: 'energy_kcal' | 'protein_g' | 'carbs_g' | 'fat_g' | 'fiber_g'): { date: ISODate; value: number | null }[] {
+  return dateRange(from, to).map((date) => {
+    const list = entries.filter((e) => e.date === date);
+    return { date, value: list.length ? sumNutrients(list.map((e) => e.nutrients)).values[key] : null };
+  });
+}
+
+/** Série diária de líquidos contados para a meta; `null` = dia sem registro. */
+export function dailyWaterSeries(logs: WaterLog[], from: ISODate, to: ISODate, goalMl: number | null): { date: ISODate; value: number | null }[] {
+  return dateRange(from, to).map((date) => {
+    const s = summarizeHydration(date, logs, goalMl);
+    return { date, value: s.logs ? s.counted_ml : null };
+  });
+}
+
+/** Distribuição média das calorias entre macros (4/4/9 kcal/g), só dias com registro. */
+export function macroEnergySplit(entries: Pick<DiaryEntry, 'date' | 'nutrients'>[], from: ISODate, to: ISODate): { protein: number; carbs: number; fat: number } | null {
+  const days = dateRange(from, to).filter((d) => entries.some((e) => e.date === d));
+  if (!days.length) return null;
+  const t = sumNutrients(entries.filter((e) => e.date >= from && e.date <= to).map((e) => e.nutrients)).values;
+  const p = t.protein_g * 4;
+  const c = t.carbs_g * 4;
+  const f = t.fat_g * 9;
+  const total = p + c + f;
+  return total ? { protein: p / total, carbs: c / total, fat: f / total } : null;
+}

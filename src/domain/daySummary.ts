@@ -76,3 +76,39 @@ export function proteinMessage(p: Progress): string | null {
   if (p.remaining === 0) return 'Meta de proteína do dia atingida.';
   return `Faltam aproximadamente ${Math.round(p.remaining!)} g de proteína para sua meta de hoje.`;
 }
+
+/** Distribuição orientativa das calorias do dia entre as refeições (soma 100%). */
+export const MEAL_SHARE: Record<MealType, number> = {
+  breakfast: 0.25,
+  morning_snack: 0.1,
+  lunch: 0.3,
+  afternoon_snack: 0.1,
+  dinner: 0.2,
+  supper: 0.05,
+  extra: 0,
+};
+
+/** Sugestão de calorias por refeição (arredondada a 10 kcal). */
+export function mealTargets(goalKcal: number | null): Partial<Record<MealType, number>> {
+  if (!goalKcal) return {};
+  const out: Partial<Record<MealType, number>> = {};
+  for (const m of MEAL_ORDER) if (MEAL_SHARE[m]) out[m] = Math.round((goalKcal * MEAL_SHARE[m]) / 10) * 10;
+  return out;
+}
+
+/** Dias seguidos com algum registro alimentar, contando a partir de hoje (ou de ontem, se hoje ainda está vazio). */
+export function loggingStreak(dates: Iterable<ISODate>, today: ISODate): number {
+  const set = new Set(dates);
+  const prev = (d: ISODate) => {
+    const [y, m, day] = d.split('-').map(Number);
+    const dt = new Date(y, m - 1, day - 1);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  };
+  let cur = set.has(today) ? today : prev(today);
+  let n = 0;
+  while (set.has(cur)) {
+    n += 1;
+    cur = prev(cur);
+  }
+  return n;
+}

@@ -10,7 +10,6 @@ import { BarChart } from '../../ui/charts';
 import { Button, Card, EmptyState, ListItem, Row, Screen, SectionHeader, T } from '../../ui/components';
 import { confirmAction } from '../../ui/confirm';
 import { num } from '../../ui/format';
-import { QuickAdd } from '../../ui/QuickAdd';
 import { useTheme } from '../../ui/theme';
 
 export default function Activities() {
@@ -74,7 +73,6 @@ export default function Activities() {
         )}
         <T variant="tiny">Calorias estimadas por MET (Compendium of Physical Activities) são aproximadas (±25%) e não são somadas automaticamente à sua meta alimentar. Integração com Health Connect e relógios está planejada para a Fase 4.</T>
       </Screen>
-      <QuickAdd />
     </View>
   );
 }

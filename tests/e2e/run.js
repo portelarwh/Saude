@@ -159,7 +159,9 @@ async function flow() {
   await step('suplemento de vitamina B12 sem alterar macros', async () => {
     await page.goto(BASE + '/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1000);
-    const before = (await page.innerText('body')).match(/Calorias\n([^\n]+)/)?.[1];
+    const heroLabel = () => page.locator('[aria-label^="Calorias:"]').first().getAttribute('aria-label');
+    const before = await heroLabel();
+    if (!before) throw new Error('cartão de calorias não encontrado');
     await page.goto(BASE + '/alimento/novo?supplement=1', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1000);
     await fill('Nome do produto', 'Vitamina B12');
@@ -187,7 +189,7 @@ async function flow() {
     await shot('13-b12-suplementos');
     await page.goto(BASE + '/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1000);
-    const after = (await page.innerText('body')).match(/Calorias\n([^\n]+)/)?.[1];
+    const after = await heroLabel();
     if (before !== after) throw new Error(`macros mudaram: ${before} -> ${after}`);
   });
   await step('resposta colada de IA externa', async () => {
@@ -240,8 +242,23 @@ async function flow() {
     await page.waitForTimeout(500);
     if (!(await page.innerText('body')).includes('Iogurte Proteico Teste')) throw new Error('rótulo colado não foi salvo como alimento');
   });
+  await step('painel e progresso com dados', async () => {
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    const body = await page.innerText('body');
+    for (const t of ['Proteína', 'Carboidratos', 'Gorduras', 'Água', 'Refeições', 'Café da manhã', 'Resumo']) if (!body.includes(t)) throw new Error('painel sem ' + t);
+    await page.screenshot({ path: `${S}/e2e-20-inicio.png`, fullPage: true });
+    await page.goto(BASE + '/progresso', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    const prog = await page.innerText('body');
+    for (const t of ['Calorias por dia', 'Proteína por dia', 'Distribuição das calorias', 'Água por dia']) if (!prog.includes(t)) throw new Error('progresso sem ' + t);
+    await page.screenshot({ path: `${S}/e2e-21-progresso.png`, fullPage: true });
+    await page.goto(BASE + '/alimentacao', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: `${S}/e2e-22-diario.png`, fullPage: true });
+  });
   await step('telas secundárias abrem', async () => {
-    for (const r of ['colar', 'refeicoes', 'agua', 'suplementos', 'receitas', 'receita', 'metas', 'perfil', 'notificacoes', 'privacidade', 'relatorios', 'dieta', 'atividade', 'fontes', 'atividades', 'alimento/novo', 'adicionar']) {
+    for (const r of ['progresso', 'colar', 'refeicoes', 'agua', 'suplementos', 'receitas', 'receita', 'metas', 'perfil', 'notificacoes', 'privacidade', 'relatorios', 'dieta', 'atividade', 'fontes', 'atividades', 'alimento/novo', 'adicionar']) {
       await page.goto(BASE + '/' + r, { waitUntil: 'networkidle' });
       await page.waitForTimeout(700);
       const body = await page.innerText('body');
