@@ -18,6 +18,7 @@ import { Button, Card, ChipSelect, DateField, Field, HeightField, MultiChipSelec
 import { num } from '../ui/format';
 import { ACTIVITY_OPTIONS, HEALTH_FLAGS, RESTRICTIONS } from '../ui/labels';
 import { ObjectivesSelect } from '../ui/ObjectivesSelect';
+import { TimelineNotice } from '../ui/TimelineNotice';
 import { spacing, useTheme } from '../ui/theme';
 
 const STEPS = ['Boas-vindas', 'Dados corporais', 'Rotina e objetivo', 'Horários', 'Alimentação', 'Saúde', 'Suas metas'];
@@ -227,13 +228,7 @@ export default function Onboarding() {
             <Toggle label="Faço treino de força (musculação ou similar)" value={Boolean(p.does_resistance_training)} onChange={(v) => set('does_resistance_training', v)} />
             <Field label="Rotina de trabalho (opcional)" value={p.work_routine ?? ''} onChangeText={(t) => set('work_routine', t)} placeholder="Ex.: escritório, 8h às 17h; turnos; home office" />
             <DateField label="Prazo desejado (opcional)" value={targetDateText} onChangeText={setTargetDateText} />
-            {timeline && timeline.status !== 'not_applicable' ? (
-              <Notice kind={timeline.status === 'ok' ? 'success' : timeline.status === 'aggressive' ? 'warning' : 'error'} title="Viabilidade do prazo">
-                {timeline.message}
-              </Notice>
-            ) : timeline?.suggestedWeeks ? (
-              <T variant="small">{timeline.message}</T>
-            ) : null}
+            <TimelineNotice timeline={timeline} onUseSuggested={setTargetDateText} />
           </>
         )}
 

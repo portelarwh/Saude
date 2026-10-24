@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ACTIVITY_FACTORS } from '../domain/energy';
-import { combineObjectives, normalizeHeightCm, profileObjectives } from '../domain/goals';
+import { assessTimeline, combineObjectives, normalizeHeightCm, profileObjectives } from '../domain/goals';
 import { formatDateBR, parseBRDate } from '../domain/dates';
 import type { Profile, Sex } from '../domain/types';
 import { recalculateGoals } from '../services/goalsService';
@@ -10,6 +10,7 @@ import { useGoals, useProfile } from '../state/hooks';
 import { Button, Card, ChipSelect, DateField, Divider, Field, HeightField, ListItem, MultiChipSelect, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
 import { ACTIVITY_OPTIONS, HEALTH_FLAGS, RESTRICTIONS } from '../ui/labels';
 import { ObjectivesSelect } from '../ui/ObjectivesSelect';
+import { TimelineNotice } from '../ui/TimelineNotice';
 
 export default function ProfileScreen() {
   const { profile } = useProfile();
@@ -76,6 +77,7 @@ function ProfileForm({ initial }: { initial: Profile }) {
           <NumberField label="Peso desejado" suffix="kg" value={p.target_weight_kg} onChange={(v) => set('target_weight_kg', v)} style={{ flex: 1 }} />
           <DateField label="Prazo" value={target} onChangeText={setTarget} style={{ flex: 1 }} />
         </Row>
+        <TimelineNotice timeline={p.current_weight_kg && p.target_weight_kg ? assessTimeline(p.current_weight_kg, p.target_weight_kg, parseBRDate(target)) : null} onUseSuggested={setTarget} />
         <Row>
           <NumberField label="Cintura" suffix="cm" value={p.waist_cm} onChange={(v) => set('waist_cm', v)} style={{ flex: 1 }} />
           <NumberField label="Quadril" suffix="cm" value={p.hip_cm} onChange={(v) => set('hip_cm', v)} style={{ flex: 1 }} />

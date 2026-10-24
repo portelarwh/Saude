@@ -119,6 +119,19 @@ describe('viabilidade do prazo', () => {
     expect(r.status).toBe('unsafe');
     expect(r.suggestedWeeks).toBeGreaterThan(10);
   });
+  it('recomenda uma data de prazo, não só semanas', () => {
+    const r = assessTimeline(80, 70, '2026-11-19', today);
+    // 10 kg a 0,75%/semana de 80 kg = 0,6 kg/semana → 17 semanas
+    expect(r.suggestedWeeks).toBe(17);
+    expect(r.suggestedDate).toBe('2027-02-15');
+    expect(r.suggestedKgPerWeek).toBe(0.59);
+    expect(r.message).toContain('Prazo recomendado: 15/02/2027');
+    const sem = assessTimeline(80, 70, null, today);
+    expect(sem.suggestedDate).toBe('2027-02-15');
+    expect(sem.message).toContain('15/02/2027');
+    // seguir a recomendação fica dentro do ritmo sustentável
+    expect(assessTimeline(80, 70, r.suggestedDate, today).status).toBe('ok');
+  });
   it('aceita ritmo sustentável', () => {
     expect(assessTimeline(80, 75, '2027-03-01', today).status).toBe('ok');
   });

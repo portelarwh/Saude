@@ -6,9 +6,9 @@
  * são substituídas por recálculos automáticos.
  */
 import { ACTIVITY_FACTORS, bmi, estimateBmr, estimateTdee, weightAtBmi } from './energy';
-import { ageOn, daysBetween, parseISODate } from './dates';
+import { addDays, ageOn, daysBetween, formatDateBR, parseISODate, toISODate } from './dates';
 import { round } from './nutrients';
-import type { GoalKey, GoalOrigin, GoalTarget, GoalTargets, HealthFlag, Objective, Profile } from './types';
+import type { GoalKey, GoalOrigin, GoalTarget, GoalTargets, HealthFlag, ISODate, Objective, Profile } from './types';
 
 export const GOAL_KEYS: GoalKey[] = ['energy_kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'water_ml'];
 
@@ -168,6 +168,10 @@ export interface TimelineAssessment {
   kgPerWeek: number | null;
   pctPerWeek: number | null;
   suggestedWeeks: number | null;
+  /** Prazo recomendado (hoje + semanas em ritmo sustentável). */
+  suggestedDate: ISODate | null;
+  /** Ritmo do prazo recomendado, em kg/semana. */
+  suggestedKgPerWeek: number | null;
   message: string;
 }
 
@@ -177,25 +181,22 @@ export interface TimelineAssessment {
  */
 export function assessTimeline(currentKg: number, targetKg: number | null, targetDate: string | null, today = new Date()): TimelineAssessment {
   if (!targetKg || targetKg === currentKg) {
-    return { status: 'not_applicable', weeks: null, kgPerWeek: null, pctPerWeek: null, suggestedWeeks: null, message: 'Sem meta de peso definida.' };
+    return { status: 'not_applicable', weeks: null, kgPerWeek: null, pctPerWeek: null, suggestedWeeks: null, suggestedDate: null, suggestedKgPerWeek: null, message: 'Sem meta de peso definida.' };
   }
   const losing = targetKg < currentKg;
   const delta = Math.abs(currentKg - targetKg);
   const sustainablePct = losing ? 0.0075 : 0.0025;
   const suggestedWeeks = Math.ceil(delta / (currentKg * sustainablePct));
+  const suggestedDate = addDays(toISODate(today), suggestedWeeks * 7);
+  const suggestedKgPerWeek = round(delta / suggestedWeeks, 2);
+  const recommendation = `Prazo recomendado: ${formatDateBR(suggestedDate)} (cerca de ${suggestedWeeks} semanas, ~${String(suggestedKgPerWeek).replace('.', ',')} kg/semana).`;
+  const suggestion = { suggestedWeeks, suggestedDate, suggestedKgPerWeek };
   if (!targetDate) {
-    return {
-      status: 'not_applicable',
-      weeks: null,
-      kgPerWeek: null,
-      pctPerWeek: null,
-      suggestedWeeks,
-      message: `Sem prazo definido. Em ritmo sustentável, a meta levaria cerca de ${suggestedWeeks} semanas.`,
-    };
+    return { status: 'not_applicable', weeks: null, kgPerWeek: null, pctPerWeek: null, ...suggestion, message: `Sem prazo definido. ${recommendation}` };
   }
   const days = daysBetween(today, parseISODate(targetDate));
   if (days <= 0) {
-    return { status: 'unsafe', weeks: 0, kgPerWeek: null, pctPerWeek: null, suggestedWeeks, message: 'O prazo informado já passou.' };
+    return { status: 'unsafe', weeks: 0, kgPerWeek: null, pctPerWeek: null, ...suggestion, message: `O prazo informado já passou. ${recommendation}` };
   }
   const weeks = days / 7;
   const kgPerWeek = delta / weeks;
@@ -205,12 +206,12 @@ export function assessTimeline(currentKg: number, targetKg: number | null, targe
   let message = `Ritmo de ${round(kgPerWeek, 2)} kg/semana (${round(pctPerWeek, 2)}% do peso) — dentro de uma faixa considerada sustentável.`;
   if (pctPerWeek > limits.aggressive) {
     status = 'unsafe';
-    message = `O prazo exigiria ${round(kgPerWeek, 2)} kg/semana (${round(pctPerWeek, 1)}% do peso), acima do recomendado. Sugerimos cerca de ${suggestedWeeks} semanas, ou acompanhamento profissional.`;
+    message = `O prazo exigiria ${round(kgPerWeek, 2)} kg/semana (${round(pctPerWeek, 1)}% do peso), acima do recomendado. ${recommendation} Prazos menores, só com acompanhamento profissional.`;
   } else if (pctPerWeek > limits.ok) {
     status = 'aggressive';
-    message = `Prazo agressivo: ${round(kgPerWeek, 2)} kg/semana (${round(pctPerWeek, 1)}% do peso). Um prazo de ~${suggestedWeeks} semanas tende a preservar melhor a massa muscular.`;
+    message = `Prazo agressivo: ${round(kgPerWeek, 2)} kg/semana (${round(pctPerWeek, 1)}% do peso). ${recommendation} Esse ritmo tende a preservar melhor a massa muscular.`;
   }
-  return { status, weeks: round(weeks, 1), kgPerWeek: round(kgPerWeek, 2), pctPerWeek: round(pctPerWeek, 2), suggestedWeeks, message };
+  return { status, weeks: round(weeks, 1), kgPerWeek: round(kgPerWeek, 2), pctPerWeek: round(pctPerWeek, 2), ...suggestion, message };
 }
 
 export function calculateGoals(input: GoalInput): GoalCalculation {

@@ -69,6 +69,13 @@ async function flow() {
     if (!/seguem: Recomposição corporal/.test(await page.innerText('body'))) throw new Error('combinação de objetivos ausente');
     await click('Levemente ativo');
     await page.getByRole('switch').first().click();
+    const soon = new Date(Date.now() + 21 * 864e5);
+    const pad = (n) => String(n).padStart(2, '0');
+    await page.getByLabel('Prazo desejado (opcional)', { exact: true }).pressSequentially(`${pad(soon.getDate())}${pad(soon.getMonth() + 1)}${soon.getFullYear()}`);
+    if (!/Prazo recomendado: \d{2}\/\d{2}\/\d{4}/.test(await page.innerText('body'))) throw new Error('prazo recomendado ausente');
+    await page.getByText(/^Usar prazo recomendado/).first().click();
+    await page.waitForTimeout(300);
+    if (!/dentro de uma faixa considerada sustentável/.test(await page.innerText('body'))) throw new Error('prazo recomendado não aplicado');
     await click('Continuar');
   });
   await step('etapas opcionais', async () => {
