@@ -1,8 +1,11 @@
 /**
- * Busca de alimentos por nome, marca, categoria, ingrediente e sinônimos.
- * Ordenação: correspondência exata de sinônimo > início do nome > todas as
- * palavras presentes > parcial. Dados brasileiros têm prioridade.
+ * Busca de alimentos por nome, marca, categoria, tags, ingrediente e sinônimos,
+ * com palavras parciais ("frang" → frango) e pequenos erros de digitação.
+ * Ordenação: correspondência exata de sinônimo > início do nome > tag do grupo
+ * ("sanduíche", "fruta") > todas as palavras presentes > parcial.
+ * Dados brasileiros têm prioridade.
  */
+import { foodTags } from './foodTags';
 import type { Food, FoodSource } from './types';
 
 export function normalizeText(s: string): string {
@@ -61,7 +64,9 @@ export function scoreFood(food: Food, query: string): number {
   if (!qTokens.length) return 0;
   const name = normalizeText(food.name);
   const aliasNorm = food.aliases.map(normalizeText);
-  const haystack = [food.name, ...food.aliases, food.brand ?? '', food.flavor ?? '', food.variant ?? '', food.category ?? '', food.ingredients_text ?? '']
+  const tags = foodTags(food);
+  const tagNorm = tags.map((t) => tokens(t).map(stem).join(' '));
+  const haystack = [food.name, ...food.aliases, ...tags, food.brand ?? '', food.flavor ?? '', food.variant ?? '', food.category ?? '', food.ingredients_text ?? '']
     .join(' ');
   const hayTokens = tokens(haystack).map(stem);
 
@@ -70,11 +75,15 @@ export function scoreFood(food: Food, query: string): number {
   else if (aliasNorm.some((a) => a.startsWith(q))) score += 60;
   if (name === q) score += 90;
   else if (name.startsWith(q)) score += 50;
+  // a busca é o nome de um grupo: "sanduiche", "frutas"
+  const qJoined = qTokens.join(' ');
+  if (tagNorm.includes(qJoined)) score += 45;
 
   let matched = 0;
   for (const qt of qTokens) {
     if (hayTokens.includes(qt)) matched += 1;
     else if (hayTokens.some((h) => h.startsWith(qt))) matched += 0.6;
+    else if (qt.length >= 5 && hayTokens.some((h) => closeEnough(qt, h))) matched += 0.5; // erro de digitação
   }
   if (matched === 0 && score === 0) return 0;
   score += (matched / qTokens.length) * 40;
@@ -83,8 +92,38 @@ export function scoreFood(food: Food, query: string): number {
   // preferir alimentos prontos para consumo em empates (cozido/grelhado vs cru)
   if (food.preparation_state === 'cru' && /carne|frango|arroz|feij|peixe|ovo|macarr/.test(name)) score -= 3;
   score += SOURCE_PRIORITY[food.source] ?? 0;
+  // alimentos do dia a dia (com sinônimos/medidas caseiras) primeiro nos empates: "frut" → banana antes de abiu
+  if (food.aliases.length || food.household_measures.length) score += 4;
   if (food.verification === 'verified') score += 2;
   return score;
+}
+
+/** Distância de edição ≤ 1 (uma letra trocada, sobrando, faltando ou duas letras invertidas). */
+export function closeEnough(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1 || b.length < 4) return false;
+  if (a.length === b.length) {
+    const d = [...a].findIndex((c, k) => c !== b[k]);
+    if (d >= 0 && a[d] === b[d + 1] && a[d + 1] === b[d] && a.slice(d + 2) === b.slice(d + 2)) return true; // "frnago" ≈ "frango"
+  }
+  let i = 0;
+  let j = 0;
+  let edits = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      i++;
+      j++;
+      continue;
+    }
+    if (++edits > 1) return false;
+    if (a.length > b.length) i++;
+    else if (a.length < b.length) j++;
+    else {
+      i++;
+      j++;
+    }
+  }
+  return edits + (a.length - i) + (b.length - j) <= 1;
 }
 
 export function searchFoods(foods: Food[], query: string, limit = 30): SearchHit[] {

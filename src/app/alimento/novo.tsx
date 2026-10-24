@@ -8,6 +8,7 @@ import React, { useMemo, useState } from 'react';
 import { COMPOUND_UNITS, compoundsToRecord, recordToCompounds, type Compound, type CompoundUnit } from '../../domain/compounds';
 import { validateSupplement } from '../../domain/entries';
 import { findDuplicate } from '../../domain/foodSearch';
+import { inferredTags, normalizeTags, suggestTags } from '../../domain/foodTags';
 import { normalizeLabel, type LabelData, type NormalizedLabel } from '../../domain/labels';
 import { isKnown, type Nutrients } from '../../domain/nutrients';
 import type { Food, FoodSource, SupplementCategory } from '../../domain/types';
@@ -16,6 +17,7 @@ import { useStore } from '../../state/AppProvider';
 import { dropDraft, takeDraft } from '../../state/drafts';
 import { useAllFoods } from '../../state/hooks';
 import { SUPPLEMENT_LABELS } from '../../ui/labels';
+import { TagEditor } from '../../ui/TagEditor';
 import { View } from 'react-native';
 import { Button, Card, Chip, ChipSelect, Field, Notice, NumberField, Row, Screen, T, Toggle } from '../../ui/components';
 
@@ -65,6 +67,7 @@ export default function NewFood() {
     Boolean(base?.is_supplement && (base.supplement_category === 'vitamin_mineral' || base.supplement_category === 'multivitamin') && (['energy_kcal', 'protein_g', 'carbs_g', 'fat_g'] as const).every((k) => base.per100[k] === 0)),
   );
   const [fromLabel, setFromLabel] = useState(Boolean(draft) || base?.source === 'label');
+  const [tags, setTags] = useState<string[]>(base?.tags ?? []);
   const [error, setError] = useState<string | null>(null);
 
   const label: LabelData = {
@@ -95,7 +98,7 @@ export default function NewFood() {
     const dup = editing ? null : findDuplicate(userFoods, normalized.food);
     if (dup) return setError(`Já existe um cadastro igual: "${dup.name}". Edite o existente para evitar duplicidade.`);
     const id = editing?.id ?? `user:${newId()}`;
-    const row = { ...normalized.food, id, verified_at: new Date().toISOString().slice(0, 10) };
+    const row = { ...normalized.food, id, tags: normalizeTags(tags), verified_at: new Date().toISOString().slice(0, 10) };
     if (editing) await store.update<Food>('foods', id, row);
     else await store.insert<Food>('foods', row);
     dropDraft(params.draft);
@@ -119,6 +122,12 @@ export default function NewFood() {
           <Field label="Sabor" value={flavor} onChangeText={setFlavor} style={{ flex: 1 }} />
         </Row>
         <Field label="Versão/variante" value={variant} onChangeText={setVariant} placeholder="Ex.: zero lactose, 900 g, refil" />
+        <TagEditor
+          value={tags}
+          onChange={setTags}
+          inferred={inferredTags({ name, category: null, aliases: [], is_supplement: isSupplement }).filter((t) => !tags.includes(t))}
+          suggestions={suggestTags({ name, category: null, aliases: [], is_supplement: isSupplement, tags }, userFoods).filter((t) => !inferredTags({ name, category: null, aliases: [], is_supplement: isSupplement }).includes(t))}
+        />
         <Toggle label="Valores copiados do rótulo do produto" value={fromLabel} onChange={setFromLabel} />
         <Toggle label="É um suplemento" value={isSupplement} onChange={(v) => { setIsSupplement(v); if (v && !category) setCategory('whey_concentrate'); }} />
         {isSupplement ? (

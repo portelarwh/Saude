@@ -308,14 +308,30 @@ async function flow() {
     let body = await page.innerText('body');
     if (!/0 novo\(s\)/.test(body) || !/já existe\(m\)/.test(body)) throw new Error('reimportação duplicaria alimentos');
     await click('Cancelar');
-    await fill('Ou cole o conteúdo (CSV ou JSON)', 'nome;unidade;valores_por;porcao;kcal;proteina_g;fibra_g\nTapioca Teste;g;porcao;50;120;0,1;\nSem dados;g;;;;;\n');
+    await fill('Ou cole o conteúdo (CSV ou JSON)', 'nome;unidade;valores_por;porcao;kcal;proteina_g;fibra_g;tags\nTapioca Teste;g;porcao;50;120;0,1;;\nSem dados;g;;;;;;\nMisto quente caseiro;g;;;260;12;;lanche da tarde\n');
     await click('Ler texto colado');
     body = await page.innerText('body');
-    if (!/1 novo\(s\)/.test(body) || !/Linha 3: Sem dados: nenhum valor nutricional/.test(body)) throw new Error('pré-visualização da planilha incorreta');
+    if (!/2 novo\(s\)/.test(body) || !/Linha 3: Sem dados: nenhum valor nutricional/.test(body)) throw new Error('pré-visualização da planilha incorreta');
     if (!/240 kcal/.test(body)) throw new Error('porção não convertida para 100 g');
-    await click('Importar 1 alimento(s)');
+    await click('Importar 2 alimento(s)');
     await page.waitForTimeout(500);
-    if (!/1 alimento\(s\) importado\(s\)/.test(await page.innerText('body'))) throw new Error('importação da planilha falhou');
+    if (!/2 alimento\(s\) importado\(s\)/.test(await page.innerText('body'))) throw new Error('importação da planilha falhou');
+  });
+  await step('busca por grupo, parte do nome e tags', async () => {
+    await page.goto(BASE + '/adicionar', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    const search = async (q) => { await fill('Pesquisar alimento', q); await page.waitForTimeout(400); return page.innerText('body'); };
+    if (!/Misto quente caseiro/.test(await search('sanduiche'))) throw new Error('misto quente não aparece em "sanduiche"');
+    if (!/Banana, prata/.test(await search('frut'))) throw new Error('"frut" não trouxe frutas');
+    if (!/Banana, prata/.test(await search('baanna'))) throw new Error('erro de digitação não tolerado');
+    await shot('14-busca-grupo');
+    await page.goto(BASE + '/alimento/novo', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    await fill('Nome do produto', 'Wrap de frango');
+    await page.getByLabel('Adicionar tag', { exact: true }).pressSequentially('pré-treino,');
+    await page.waitForTimeout(300);
+    const body = await page.innerText('body');
+    if (!/pré-treino ✕/.test(body) || !/encontra este alimento por: .*sanduíche/.test(body)) throw new Error('editor de tags');
     await shot('12-base-alimentos');
   });
   await step('telas secundárias abrem', async () => {

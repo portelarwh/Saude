@@ -11,6 +11,7 @@ A cada envio para o GitHub, o workflow de publicação junta tudo em `src/data/r
 - Números com vírgula ou ponto decimal (`6,3` ou `6.3`).
 - `fonte`: `rotulo`, `taco`, `tbca`, `usda`, `off`, `manual`, `estimativa`. Estimativas ficam marcadas como estimadas no app.
 - `apelidos`: nomes alternativos separados por `|` (ex.: `aipim|macaxeira`).
+- `tags`: grupos para a busca, separados por `|` (ex.: `sanduíche|lanche`). Buscar por uma tag mostra todos os alimentos do grupo. Grupos como fruta, doce, carne e bebida já são deduzidos pela categoria e pelo nome.
 - Mesmo alimento (mesmo código de barras, ou mesmo nome + marca + sabor + versão) em mais de um arquivo: vale o do arquivo que vem depois em ordem alfabética.
 
 Colunas aceitas: veja o cabeçalho de `_modelo.csv`.

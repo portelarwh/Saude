@@ -157,6 +157,8 @@ export interface Food {
   supplement_category: SupplementCategory | null;
   /** Compostos ativos por porção (ex.: creatina 3 g), nunca somados como macronutriente. */
   compounds_per_serving: Record<string, number> | null;
+  /** Grupos escolhidos pelo usuário (ex.: "sanduíche", "lanche"); a busca também deduz tags pela categoria e pelo nome. */
+  tags?: string[];
   created_at?: ISODateTime;
 }
 

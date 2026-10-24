@@ -36,7 +36,7 @@ export function toBaseFood(f: Food): Food {
   const rest: Food & { updated_at?: string } = { ...f };
   delete rest.created_at;
   delete rest.updated_at;
-  return { ...rest, id, user_id: null };
+  return { ...rest, id, user_id: null, tags: f.tags ?? [] };
 }
 
 /** Alimentos que valem exportar: os cadastrados pelo usuário e os já incorporados à base (TACO fica de fora). */
@@ -99,6 +99,7 @@ const FoodSchema = z.object({
   is_supplement: z.boolean().default(false),
   supplement_category: z.string().nullable().default(null),
   compounds_per_serving: z.record(z.string(), z.number()).nullable().default(null),
+  tags: z.array(z.string()).default([]),
 });
 
 const BundleSchema = z.object({ formato: z.literal(FOOD_BUNDLE_FORMAT), alimentos: z.array(z.unknown()) });

@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { formatCompounds } from '../../domain/compounds';
 import { buildEntry, buildSupplementEntry } from '../../domain/entries';
 import { NUTRIENT_KEYS, NUTRIENT_LABELS, scalePer100 } from '../../domain/nutrients';
+import { foodTags } from '../../domain/foodTags';
 import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type MealType } from '../../domain/types';
 import { useStore } from '../../state/AppProvider';
 import { useAllFoods, useCollection, useToday } from '../../state/hooks';
@@ -85,6 +86,7 @@ export default function FoodDetail() {
         <Divider />
         <T variant="tiny">{`Fonte: ${SOURCE_LABEL[food.source] ?? food.source}${food.source_ref ? ` (${food.source_ref})` : ''}${food.verified_at ? ` · atualizado em ${food.verified_at}` : ''}. "Não informado" significa que a fonte não traz o valor — ele não é tratado como zero.`}</T>
         {food.ingredients_text ? <T variant="tiny">{`Ingredientes: ${food.ingredients_text}`}</T> : null}
+        {foodTags(food).length ? <T variant="tiny">{`Grupos na busca: ${foodTags(food).map((t) => `#${t}`).join(' ')}${food.user_id ? ' (edite em Editar)' : ''}`}</T> : null}
       </Card>
 
       <Row wrap>

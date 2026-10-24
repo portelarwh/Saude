@@ -14,7 +14,7 @@
     "android": {
       "package": "br.app.meuequilibrio",
       "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
+        "backgroundColor": "#10281E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -34,7 +34,7 @@
       "shortName": "Equilíbrio",
       "lang": "pt-BR",
       "themeColor": "#1C5E3F",
-      "backgroundColor": "#FFFFFF",
+      "backgroundColor": "#10281E",
       "description": "Diário alimentar, água, metas, composição corporal e relatórios."
     },
     "plugins": [

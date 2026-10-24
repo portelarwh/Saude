@@ -24,7 +24,7 @@ Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca n
 ## O que tem
 
 - **Início:** proteína e água em destaque, calorias e macros (com "parcial" quando a fonte não informa um nutriente), atividades, próximo lembrete, evolução de peso e composição, adesão de 7 dias, registro rápido sempre à mão.
-- **Alimentação:** diário por refeição; 4 formas de adicionar — pesquisa (TACO, sinônimos, favoritos, recentes), frase em linguagem natural, foto do rótulo, código de barras (Open Food Facts); receitas, marmitas e lista de compras; suplementos (creatina, vitaminas e minerais registrados à parte, sem mexer nos macros); plano alimentar importado ou proposta orientativa, com alternativas que não são somadas.
+- **Alimentação:** diário por refeição; 4 formas de adicionar — pesquisa enquanto digita (TACO, sinônimos, tags/grupos como "fruta" ou "sanduíche", palavras incompletas e pequenos erros de digitação, favoritos, recentes), frase em linguagem natural, foto do rótulo, código de barras (Open Food Facts); receitas, marmitas e lista de compras; suplementos (creatina, vitaminas e minerais registrados à parte, sem mexer nos macros); plano alimentar importado ou proposta orientativa, com alternativas que não são somadas.
 - **Evolução:** peso com média móvel, avaliações corporais (importadas por IA com conferência ou digitadas), comparação com a anterior e a inicial, tendências 30/60/90 dias, relatórios PDF/CSV.
 - **Atividades:** registro, gasto estimado por MET com faixa de incerteza (sem virar crédito alimentar), consistência semanal.
 - **Assistente IA:** chat com seus registros e a base TACO; não diagnostica e respeita metas e planos prescritos.
@@ -34,7 +34,7 @@ Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca n
 ## Qualidade
 
 ```bash
-npm run check        # tipos + lint + 173 testes unitários (inclui os 15 cenários obrigatórios)
+npm run check        # tipos + lint + 182 testes unitários (inclui os 15 cenários obrigatórios)
 npm run test:db      # migrações e RLS em PostgreSQL real
 npm run test:e2e     # fluxo completo na versão web (Playwright/Chromium)
 ```

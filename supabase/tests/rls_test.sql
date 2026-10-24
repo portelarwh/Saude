@@ -23,7 +23,8 @@ select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 insert into public.profiles (id, name, health_notes) values ('11111111-1111-1111-1111-111111111111', 'Ana', 'informação sensível');
 insert into public.water_logs (date, logged_at, volume_ml, beverage) values ('2026-10-19', now(), 250, 'water');
 insert into public.body_assessments (measured_at, input, metrics) values (now(), 'manual', '{"weight_kg":{"value":70,"unit":"kg"}}');
-insert into public.foods (id, name, base_unit, source, verification, per100) values ('user:whey', 'Whey', 'g', 'label', 'reported', '{"protein_g":70}');
+insert into public.foods (id, name, base_unit, source, verification, per100, tags) values ('user:whey', 'Whey', 'g', 'label', 'reported', '{"protein_g":70}', array['pós-treino']);
+select pg_temp.assert(exists (select 1 from public.search_foods('pós-treino') where id = 'user:whey'), 'busca encontra alimento pela tag do usuário');
 insert into storage.objects (bucket_id, name) values ('health-files', '11111111-1111-1111-1111-111111111111/exames/a.pdf');
 insert into public.saved_meals (name, items) values ('Café proteico', '[]');
 select pg_temp.assert((select count(*) from public.water_logs) = 1, 'Ana vê o próprio registro de água');
@@ -71,6 +72,8 @@ exception when insufficient_privilege then
   raise notice 'ok - base de referência é somente leitura';
 end $$;
 select pg_temp.assert((select count(*) from public.search_foods('frango peito grelhado')) > 0, 'busca textual funciona');
+select pg_temp.assert((select tags from public.reference_foods where id = 'taco:1') is not null and exists (select 1 from public.search_foods('fruta') s join public.reference_foods r using (id) where r.category = 'Frutas e derivados'), 'busca por grupo (tag da categoria) encontra frutas');
+select pg_temp.assert(not exists (select 1 from public.search_foods('pós-treino') where id = 'user:whey'), 'tags de outro usuário não aparecem na busca');
 select pg_temp.assert(not exists (select 1 from public.search_foods('whey') where id = 'user:whey'), 'busca não retorna alimentos de outro usuário');
 reset role;
 

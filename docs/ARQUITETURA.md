@@ -72,7 +72,7 @@ Storage: bucket privado `health-files`, caminhos `<user_id>/<exames|rotulos|diet
 
 | Camada | Ferramenta | O que cobre |
 |---|---|---|
-| Domínio e serviços | Jest (`npm test`) | 173 testes, incluindo os 15 cenários obrigatórios (mapa em `STATUS.md`) |
+| Domínio e serviços | Jest (`npm test`) | 182 testes, incluindo os 15 cenários obrigatórios (mapa em `STATUS.md`) |
 | Banco | `npm run test:db` | Migrações em PostgreSQL 16 real + 20 verificações de RLS, auditoria, bloqueio de dieta e exclusão em cascata |
 | Edge Functions | `deno check` | Tipos das 7 funções e conversão dos esquemas Zod para JSON Schema |
 | Ponta a ponta | `npm run test:e2e` | Fluxo completo na versão web (cadastro → água → refeição por frase → diário → recarregar → assistente → peso → avaliações → todas as telas) |

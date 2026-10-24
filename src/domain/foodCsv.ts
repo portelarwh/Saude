@@ -4,6 +4,7 @@
  * Valores podem estar por 100 g/ml ou por porção (convertidos para 100).
  */
 import { normalizeText } from './foodSearch';
+import { normalizeTags } from './foodTags';
 import { isKnown, perServingToPer100, round, type NutrientKey, type Nutrients } from './nutrients';
 import type { Food, FoodSource, Verification } from './types';
 
@@ -59,14 +60,14 @@ const COLUMN_ALIASES: Record<string, string> = {
 export const CSV_TEMPLATE_HEADER = [
   'nome', 'marca', 'sabor', 'versao', 'categoria', 'unidade', 'valores_por', 'porcao', 'medida_caseira',
   ...Object.keys(CSV_NUTRIENT_COLUMNS),
-  'fonte', 'verificacao', 'referencia', 'codigo_barras', 'suplemento', 'apelidos',
+  'fonte', 'verificacao', 'referencia', 'codigo_barras', 'suplemento', 'apelidos', 'tags',
 ];
 
 export function csvTemplate(): string {
   const example: Record<string, string> = {
     nome: 'Iogurte natural integral', marca: 'Marca Exemplo', unidade: 'g', valores_por: 'porcao', porcao: '170', medida_caseira: '1 pote',
     kcal: '102', proteina_g: '6,3', carboidrato_g: '8,5', gordura_g: '4,8', gordura_saturada_g: '3,1', sodio_mg: '85', fibra_g: '',
-    fonte: 'rotulo', codigo_barras: '', suplemento: 'nao', apelidos: 'iogurte|iogurte natural',
+    fonte: 'rotulo', codigo_barras: '', suplemento: 'nao', apelidos: 'iogurte|iogurte natural', tags: 'café da manhã|lanche',
   };
   return [CSV_TEMPLATE_HEADER.join(';'), CSV_TEMPLATE_HEADER.map((h) => example[h] ?? '').join(';')].join('\r\n') + '\r\n';
 }
@@ -221,6 +222,7 @@ export function parseFoodsCsv(text: string): CsvImport {
       is_supplement: isSupplement,
       supplement_category: null,
       compounds_per_serving: null,
+      tags: normalizeTags(get('tags').split(/[|,]/)),
     });
   });
   return { foods, errors, warnings };

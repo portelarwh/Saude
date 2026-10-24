@@ -104,7 +104,7 @@ function SearchTab({ onPick, date, meal }: { onPick: (f: Food) => void; date: st
 
   return (
     <>
-      <Field label="Pesquisar alimento" value={q} onChangeText={setQ} placeholder="Ex.: pão francês, peito de frango, iogurte" autoFocus returnKeyType="search" />
+      <Field label="Pesquisar alimento" value={q} onChangeText={setQ} placeholder="Ex.: pão francês, frango, fruta, sanduíche" autoFocus returnKeyType="search" hint="Os resultados aparecem enquanto você digita: nome, parte do nome, marca ou grupo (fruta, lanche, doce…)." />
       {q.trim().length >= 2 ? (
         <Card>
           {mode === 'cloud' ? (
