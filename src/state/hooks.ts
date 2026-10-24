@@ -3,6 +3,7 @@ import { referenceFoods } from '../data/reference';
 import type { Query, TableName } from '../data/store';
 import { toISODate } from '../domain/dates';
 import { DEFAULT_COUNTED } from '../domain/hydration';
+import { foodKey } from '../domain/foodBundle';
 import type { Beverage, Food, GoalSet, Profile } from '../domain/types';
 import { useStore } from './AppProvider';
 
@@ -105,7 +106,11 @@ export function useGoals(): { goalSet: GoalSet | null; loading: boolean } {
 /** Base de referência + alimentos do usuário (receitas, rótulos, suplementos). */
 export function useAllFoods(): { foods: Food[]; userFoods: Food[]; loading: boolean } {
   const { data, loading } = useCollection<Food>('foods');
-  const foods = useMemo(() => [...data, ...referenceFoods()], [data]);
+  const foods = useMemo(() => {
+    // um cadastro do próprio usuário esconde a cópia dele já incorporada à base
+    const mine = new Set(data.map(foodKey));
+    return [...data, ...referenceFoods().filter((f) => f.source === 'taco' || !mine.has(foodKey(f)))];
+  }, [data]);
   return { foods, userFoods: data, loading };
 }
 

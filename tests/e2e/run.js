@@ -17,7 +17,7 @@ const S = process.env.E2E_SHOTS || path.join(ROOT, 'tests', 'e2e', 'screenshots'
 
 async function main() {
   if (!fs.existsSync(path.join(DIST, 'index.html'))) {
-    execSync('npx expo export --platform web --output-dir dist', { cwd: ROOT, stdio: 'inherit', env: { ...process.env, CI: '1' } });
+    execSync('npm run export:web', { cwd: ROOT, stdio: 'inherit', env: { ...process.env, CI: '1' } });
   }
   fs.mkdirSync(S, { recursive: true });
   const server = http.createServer((req, res) => handler(req, res, { public: DIST, rewrites: [{ source: '**', destination: '/index.html' }] }));
@@ -269,6 +269,32 @@ async function flow() {
     await page.goto(BASE + '/alimentacao', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1000);
     await page.screenshot({ path: `${S}/e2e-22-diario.png`, fullPage: true });
+  });
+  await step('instalável como PWA', async () => {
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    const manifestHref = await page.getAttribute('link[rel="manifest"]', 'href');
+    const manifest = await (await page.request.get(BASE + manifestHref)).json();
+    if (manifest.display !== 'standalone' || !manifest.icons.some((i) => i.sizes === '512x512')) throw new Error('manifesto incompleto');
+    const icon = await page.request.get(new URL(manifest.icons[0].src, BASE + manifestHref).toString());
+    if (!icon.ok()) throw new Error('ícone do manifesto não encontrado');
+    const sw = await page.evaluate(async () => (await navigator.serviceWorker.ready).active?.scriptURL ?? null);
+    if (!sw || !sw.endsWith('/sw.js')) throw new Error('service worker não ativo');
+  });
+  await step('exportar e importar base de alimentos', async () => {
+    await page.goto(BASE + '/base-alimentos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    const [download] = await Promise.all([page.waitForEvent('download'), click('Exportar alimentos-base.json')]);
+    const file = path.join(S, 'alimentos-base.json');
+    await download.saveAs(file);
+    const bundle = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (bundle.formato !== 'meu-equilibrio/alimentos-v1') throw new Error('formato inesperado');
+    const yog = bundle.alimentos.find((f) => f.name === 'Iogurte Proteico Teste');
+    if (!yog || yog.user_id !== null || !yog.id.startsWith('base:')) throw new Error('rótulo salvo ausente na exportação');
+    await fill('Ou cole o conteúdo do arquivo', JSON.stringify(bundle));
+    await click('Importar texto colado');
+    await page.waitForTimeout(500);
+    if (!/0 alimento\(s\) novo\(s\) importado\(s\) · \d+ já existia/.test(await page.innerText('body'))) throw new Error('reimportação duplicou alimentos');
+    await shot('12-base-alimentos');
   });
   await step('telas secundárias abrem', async () => {
     for (const r of ['progresso', 'colar', 'refeicoes', 'agua', 'suplementos', 'receitas', 'receita', 'metas', 'perfil', 'notificacoes', 'privacidade', 'relatorios', 'dieta', 'atividade', 'fontes', 'atividades', 'alimento/novo', 'adicionar']) {

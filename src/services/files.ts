@@ -4,6 +4,7 @@
  */
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 import { newId } from './ids';
 import { isCloudConfigured, supabase } from './supabase';
 
@@ -20,6 +21,19 @@ export async function pickDocument(): Promise<PickedFile | null> {
   if (r.canceled || !r.assets?.[0]) return null;
   const a = r.assets[0];
   return { uri: a.uri, name: a.name, mimeType: a.mimeType ?? guessMime(a.name) };
+}
+
+/** Escolhe um arquivo JSON e devolve o texto (web e Android). */
+export async function pickJsonText(): Promise<{ name: string; text: string } | null> {
+  const r = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'text/plain', '*/*'], copyToCacheDirectory: true });
+  if (r.canceled || !r.assets?.[0]) return null;
+  const a = r.assets[0];
+  if (Platform.OS === 'web') {
+    const text = a.file ? await a.file.text() : await (await fetch(a.uri)).text();
+    return { name: a.name, text };
+  }
+  const FS = await import('expo-file-system/legacy');
+  return { name: a.name, text: await FS.readAsStringAsync(a.uri) };
 }
 
 export async function pickImage(source: 'camera' | 'library'): Promise<PickedFile | null> {

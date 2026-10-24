@@ -8,7 +8,7 @@ Aplicativo pessoal (Android-first, também PWA) para emagrecimento saudável com
 
 **https://portelarwh.github.io/Saude/**
 
-Para o link funcionar (uma única vez): no GitHub, abra *Settings › Pages › Build and deployment* e em **Source** escolha **GitHub Actions**. O workflow *Publicar app web* publica o app automaticamente a cada atualização (veja a aba *Actions*). No celular, abra o link no Chrome e use *Adicionar à tela inicial* para usar como aplicativo.
+Para o link funcionar (uma única vez): no GitHub, abra *Settings › Pages › Build and deployment* e em **Source** escolha **GitHub Actions**. O workflow *Publicar app web* publica o app automaticamente a cada atualização (veja a aba *Actions*). O app é um **PWA instalável**: no Android, abra o link no Chrome e toque em *Instalar app* (ou menu ⋮ › *Adicionar à tela inicial*); no computador, use o ícone de instalar na barra de endereço. Depois de aberto uma vez, funciona sem internet.
 
 Na versão web os dados ficam no próprio navegador do aparelho (modo local). Lembretes agendados funcionam apenas no aplicativo Android.
 
@@ -28,12 +28,13 @@ Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca n
 - **Evolução:** peso com média móvel, avaliações corporais (importadas por IA com conferência ou digitadas), comparação com a anterior e a inicial, tendências 30/60/90 dias, relatórios PDF/CSV.
 - **Atividades:** registro, gasto estimado por MET com faixa de incerteza (sem virar crédito alimentar), consistência semanal.
 - **Assistente IA:** chat com seus registros e a base TACO; não diagnostica e respeita metas e planos prescritos.
+- **Base de alimentos:** exporte seus cadastros no formato da base do sistema para que novas instalações já venham com eles ([como](docs/BASE_DE_ALIMENTOS.md)); importe o arquivo em outro aparelho.
 - **Perfil:** metas (sugeridas / suas / prescritas), notificações por tipo, privacidade (LGPD: consentimentos, exportar, excluir arquivos e conta), fontes de dados.
 
 ## Qualidade
 
 ```bash
-npm run check        # tipos + lint + 151 testes unitários (inclui os 15 cenários obrigatórios)
+npm run check        # tipos + lint + 160 testes unitários (inclui os 15 cenários obrigatórios)
 npm run test:db      # migrações e RLS em PostgreSQL real
 npm run test:e2e     # fluxo completo na versão web (Playwright/Chromium)
 ```
@@ -44,6 +45,7 @@ npm run test:e2e     # fluxo completo na versão web (Playwright/Chromium)
 - [Status: implementado, dependente de credenciais, não implementado](docs/STATUS.md)
 - [Implantação: Supabase, IA, Android, web](docs/IMPLANTACAO.md)
 - [Fontes nutricionais e licenças](docs/FONTES_DE_DADOS.md)
+- [Base de alimentos do sistema (exportar/incluir)](docs/BASE_DE_ALIMENTOS.md)
 - [Política de privacidade (modelo)](docs/PRIVACIDADE.md)
 
 ## Estrutura

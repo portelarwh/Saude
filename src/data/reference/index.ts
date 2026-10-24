@@ -1,10 +1,13 @@
 /**
- * Base de referência embarcada (funciona offline). Hoje contém a TACO;
- * outras fontes entram por importação específica (ver docs/FONTES_DE_DADOS.md).
+ * Base de referência embarcada (funciona offline): TACO + alimentos incorporados
+ * a partir de cadastros exportados pelo app (alimentos-base.json, ver
+ * docs/BASE_DE_ALIMENTOS.md). Outras fontes entram por importação específica.
  */
+import { parseFoodBundle } from '../../domain/foodBundle';
 import type { Food } from '../../domain/types';
 import type { Nutrients } from '../../domain/nutrients';
 import { extrasFor } from './tacoExtras';
+import base from './alimentos-base.json';
 import taco from './taco.json';
 
 interface TacoRow {
@@ -30,6 +33,13 @@ export const TACO_CITATION =
   'NÚCLEO DE ESTUDOS E PESQUISAS EM ALIMENTAÇÃO (NEPA/UNICAMP). Tabela Brasileira de Composição de Alimentos – TACO. 4. ed. rev. e ampl. Campinas: NEPA/UNICAMP, 2011.';
 
 let cache: Food[] | null = null;
+let baseCache: Food[] | null = null;
+
+/** Alimentos incorporados ao sistema (exportados do app e copiados para o repositório). */
+export function baseFoods(): Food[] {
+  baseCache ??= parseFoodBundle(JSON.stringify(base)).foods;
+  return baseCache;
+}
 
 export function referenceFoods(): Food[] {
   if (cache) return cache;
@@ -63,6 +73,7 @@ export function referenceFoods(): Food[] {
       compounds_per_serving: null,
     } satisfies Food;
   });
+  cache.push(...baseFoods());
   return cache;
 }
 

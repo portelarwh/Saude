@@ -7,6 +7,8 @@ import { Platform } from 'react-native';
 import { ALL_TABLES, type DataStore } from '../data/store';
 import { toCSV, type Report } from '../domain/reports';
 import { formatDateBR } from '../domain/dates';
+import { buildFoodBundle } from '../domain/foodBundle';
+import type { Food } from '../domain/types';
 
 async function shareText(filename: string, content: string, mime: string): Promise<void> {
   if (Platform.OS === 'web') {
@@ -37,6 +39,13 @@ export async function exportAllJSON(store: DataStore): Promise<void> {
   const data = await collectAllData(store);
   const payload = { app: 'Meu Equilíbrio', exported_at: new Date().toISOString(), format_version: 1, data };
   await shareText(`meu-equilibrio-dados-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json');
+}
+
+/** Base de alimentos (base do sistema + cadastros do usuário) no formato de alimentos-base.json. */
+export async function exportFoodBase(baseFoods: Food[], userFoods: Food[]): Promise<number> {
+  const bundle = buildFoodBundle(baseFoods, userFoods);
+  await shareText('alimentos-base.json', JSON.stringify(bundle, null, 2) + '\n', 'application/json');
+  return bundle.alimentos.length;
 }
 
 /** CSV de uma tabela (abre no Excel em pt-BR: separador ";" e vírgula decimal). */

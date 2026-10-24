@@ -1,0 +1,6 @@
+{
+  "formato": "meu-equilibrio/alimentos-v1",
+  "atualizado_em": "2026-10-24T00:00:00.000Z",
+  "observacao": "Base de alimentos do Meu Equilíbrio. Para incluir no sistema, substitua src/data/reference/alimentos-base.json por este arquivo.",
+  "alimentos": []
+}

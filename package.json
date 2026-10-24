@@ -52,7 +52,7 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "export:web": "expo export --platform web",
+    "export:web": "expo export --platform web --output-dir dist && node scripts/pwa-postbuild.js dist",
     "import:taco": "python3 scripts/import_taco.py",
     "test:db": "bash scripts/test-db.sh",
     "test:e2e": "node tests/e2e/run.js",

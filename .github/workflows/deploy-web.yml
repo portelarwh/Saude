@@ -33,10 +33,10 @@ jobs:
         env:
           CI: '1'
           EXPO_BASE_URL: /${{ github.event.repository.name }}
-      - name: Fallback de rotas e sem Jekyll
-        run: |
-          cp dist/index.html dist/404.html
-          touch dist/.nojekyll
+      - name: PWA (manifesto, service worker), fallback de rotas e sem Jekyll
+        run: node scripts/pwa-postbuild.js dist
+        env:
+          EXPO_BASE_URL: /${{ github.event.repository.name }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
