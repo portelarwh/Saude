@@ -14,6 +14,7 @@ import { buildExternalPrompt, parseExternalBioimpedance } from '../../services/e
 import { bioExtractionToDraft, confirmAssessment, type AssessmentDraft } from '../../services/imports';
 import type { BioimpedanceExtraction } from '../../../supabase/functions/_shared/schemas';
 import { ExternalAiPanel } from '../../ui/ExternalAi';
+import { pickExamFile, shareExamWithPrompt } from '../../services/shareToAi';
 import { useApp, useStore } from '../../state/AppProvider';
 import { useProfile } from '../../state/hooks';
 import { Badge, Button, Card, Chip, ChipSelect, DateField, Field, Notice, NumberField, Row, Screen, T, Toggle } from '../../ui/components';
@@ -82,6 +83,23 @@ export default function NewAssessment() {
     }
   };
 
+  const [shareMsg, setShareMsg] = useState<{ kind: 'info' | 'success' | 'error'; text: string } | null>(null);
+  const shareExam = async () => {
+    setShareMsg(null);
+    try {
+      const exam = await pickExamFile();
+      if (!exam) return;
+      setBusy(true);
+      const r = await shareExamWithPrompt(exam, buildExternalPrompt('bioimpedance', {}));
+      if (r === 'shared') setShareMsg({ kind: 'success', text: 'Escolha o app da IA (Claude, ChatGPT ou Gemini). O exame vai anexado; se a pergunta não aparecer na mensagem, cole-a (já está copiada). Depois copie a resposta e cole no passo 2.' });
+      else if (r === 'unsupported') setShareMsg({ kind: 'info', text: `Arquivo “${exam.name}” escolhido. Este navegador não envia arquivos para outros apps: a pergunta foi copiada — abra a IA no passo 2, anexe o arquivo e cole a pergunta.` });
+    } catch (e) {
+      setShareMsg({ kind: 'error', text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const setMetric = (key: BodyMetricKey, value: number | null) =>
     setDraft((d) => {
       const metrics = { ...d.metrics };
@@ -120,22 +138,30 @@ export default function NewAssessment() {
   return (
     <Screen>
       <Card>
-        <T variant="h3">Importar exame</T>
-        <T variant="small">Envie o PDF ou a foto do laudo de bioimpedância. A IA transcreve apenas os indicadores presentes; você confere tudo antes de salvar.</T>
+        <T variant="h3">Importar exame (PDF ou foto)</T>
         {aiReady ? (
-          <Button icon="document-attach-outline" title="Escolher arquivo (PDF, JPG, PNG)" onPress={importFile} loading={busy} />
+          <>
+            <T variant="small">Envie o PDF ou a foto do laudo de bioimpedância. A IA transcreve apenas os indicadores presentes; você confere tudo antes de salvar.</T>
+            <Button icon="document-attach-outline" title="Escolher arquivo (PDF, JPG, PNG)" onPress={importFile} loading={busy} />
+          </>
         ) : (
-          <Notice kind="info">{mode === 'local' ? 'A importação por IA exige a conta na nuvem (Supabase). Digite os valores abaixo.' : 'Autorize o uso de IA em Perfil › Privacidade para importar exames.'}</Notice>
+          <>
+            <T variant="small">Sem conta na nuvem, quem lê o laudo é a IA que você usa (Claude, ChatGPT ou Gemini). O app prepara a pergunta no formato certo; você cola a resposta aqui e confere antes de salvar.</T>
+            <T variant="label">1. Enviar o exame para a IA</T>
+            <Button icon="cloud-upload-outline" title="Escolher exame e enviar para a IA" onPress={shareExam} loading={busy} />
+            {shareMsg ? <Notice kind={shareMsg.kind}>{shareMsg.text}</Notice> : null}
+            <T variant="label">2. Colar a resposta da IA</T>
+            <ExternalAiPanel
+              defaultOpen
+              title="Resposta da IA"
+              description="Se preferir, abra a IA por aqui (a pergunta é copiada), anexe o PDF ou a foto do laudo e envie. Depois copie a resposta inteira e cole abaixo."
+              attachHint="Anexe o PDF ou a foto do exame antes de enviar."
+              getPrompt={() => buildExternalPrompt('bioimpedance', {})}
+              onAnswer={(t) => applyExtraction(parseExternalBioimpedance(t), null, 'Valores transcritos por IA externa: compare cada número com o laudo.')}
+            />
+            {mode === 'cloud' ? <T variant="tiny">Para a leitura automática dentro do app, autorize o uso de IA em Perfil › Privacidade.</T> : null}
+          </>
         )}
-        {!aiReady ? (
-          <ExternalAiPanel
-            title="Ler o exame com outra IA"
-            description="Abra o Claude, ChatGPT ou Gemini, anexe o PDF ou a foto do laudo e envie a pergunta copiada. Cole a resposta aqui: os valores abrem para conferência e só são salvos quando você confirmar."
-            attachHint="Anexe o PDF ou a foto do exame antes de enviar."
-            getPrompt={() => buildExternalPrompt('bioimpedance', {})}
-            onAnswer={(t) => applyExtraction(parseExternalBioimpedance(t), null, 'Valores transcritos por IA externa: compare cada número com o laudo.')}
-          />
-        ) : null}
         {imported ? <Notice kind="warning" title="Confira os valores extraídos">Compare com o laudo e corrija o que for preciso. Indicadores ausentes no exame não foram preenchidos.</Notice> : null}
       </Card>
       {warnings.map((w) => <Notice key={w} kind="warning">{w}</Notice>)}

@@ -7,6 +7,7 @@ import { AppProvider, useApp } from '../state/AppProvider';
 import { useProfile } from '../state/hooks';
 import { Loading } from '../ui/components';
 import { dark, light, ThemeContext } from '../ui/theme';
+import { InstallBanner } from '../ui/InstallBanner';
 import { UpdateBanner } from '../ui/UpdateBanner';
 
 function ThemedStack() {
@@ -87,6 +88,7 @@ function Shell({ scheme, trackSeen = false }: { scheme: 'light' | 'dark'; trackS
         <Stack.Screen name="base-alimentos" options={{ title: 'Base de alimentos' }} />
       </Stack>
       <UpdateBanner trackSeen={trackSeen} />
+      <InstallBanner />
     </ThemeContext.Provider>
   );
 }

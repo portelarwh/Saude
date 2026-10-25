@@ -103,6 +103,7 @@ export default function Progress() {
         {weightPts.length ? <LineChart title="Peso" points={weightPts} smooth={weightPts.length >= 3 ? smooth : undefined} unit="kg" color={colors.chart.primary} /> : <T variant="small">Toque para registrar seu peso.</T>}
       </Card>
       <Card>
+        <ListItem icon="cloud-upload-outline" title="Importar exame de bioimpedância" subtitle="PDF ou foto do laudo, lido pela IA que você usa" onPress={() => router.push('/composicao/nova')} />
         <ListItem icon="body-outline" title="Composição corporal" subtitle={assessments.data.length ? `${assessments.data.length} avaliação(ões) · comparação e tendências` : 'Adicione sua bioimpedância'} onPress={() => router.push('/(tabs)/evolucao')} />
         <ListItem icon="walk-outline" title="Atividades" subtitle="Registros e consistência semanal" onPress={() => router.push('/(tabs)/atividades')} />
         <ListItem icon="document-text-outline" title="Relatório detalhado" subtitle="Texto completo, lacunas e exportação CSV" onPress={() => router.push('/relatorios')} />

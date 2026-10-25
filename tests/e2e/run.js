@@ -340,6 +340,24 @@ async function flow() {
     if (!/pré-treino ✕/.test(body) || !/encontra este alimento por: .*sanduíche/.test(body)) throw new Error('editor de tags');
     await shot('12-base-alimentos');
   });
+  await step('exame: enviar arquivo para a IA', async () => {
+    await page.goto(BASE + '/composicao/nova', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    const body = await page.innerText('body');
+    if (!/Escolher exame e enviar para a IA/.test(body) || !/Resposta da IA/.test(body)) throw new Error('envio do exame não está visível');
+  });
+  await step('sugestão de instalação no celular', async () => {
+    const mobile = await browser.newContext({ viewport: { width: 400, height: 860 }, userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36' });
+    const p = await mobile.newPage();
+    await p.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(1200);
+    if (!/Instale o Meu Equilíbrio/.test(await p.innerText('body'))) throw new Error('aviso de instalação ausente');
+    await p.getByLabel('Agora não', { exact: true }).click();
+    await p.reload({ waitUntil: 'networkidle' });
+    await p.waitForTimeout(1000);
+    if (/Instale o Meu Equilíbrio/.test(await p.innerText('body'))) throw new Error('"agora não" não foi respeitado');
+    await mobile.close();
+  });
   await step('telas secundárias abrem', async () => {
     for (const r of ['progresso', 'colar', 'refeicoes', 'agua', 'suplementos', 'receitas', 'receita', 'metas', 'perfil', 'notificacoes', 'privacidade', 'relatorios', 'dieta', 'atividade', 'fontes', 'atividades', 'alimento/novo', 'adicionar']) {
       await page.goto(BASE + '/' + r, { waitUntil: 'networkidle' });

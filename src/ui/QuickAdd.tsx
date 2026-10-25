@@ -37,7 +37,7 @@ export function QuickAddSheet({ visible, onClose }: { visible: boolean; onClose:
       <ListItem icon="flask-outline" title="Suplemento" onPress={() => go('/suplementos')} />
       <ListItem icon="walk-outline" title="Atividade física" onPress={() => go('/atividade')} />
       <ListItem icon="scale-outline" title="Peso" onPress={() => go('/peso')} />
-      <ListItem icon="body-outline" title="Avaliação corporal" onPress={() => go('/composicao/nova')} />
+      <ListItem icon="body-outline" title="Exame de bioimpedância" subtitle="Importar PDF ou foto do laudo, ou digitar os valores" onPress={() => go('/composicao/nova')} />
     </Sheet>
   );
 }

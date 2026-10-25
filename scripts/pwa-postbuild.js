@@ -43,6 +43,8 @@ const tags = [
   `<meta name="mobile-web-app-capable" content="yes">`,
   `<meta name="apple-mobile-web-app-title" content="Meu Equilíbrio">`,
   `<meta name="description" content="Diário alimentar, água, metas, composição corporal e relatórios.">`,
+  // guarda o pedido de instalação do Chrome para o aviso "Instale o app" (src/ui/InstallBanner.tsx)
+  `<script>window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__mePrompt=e;window.dispatchEvent(new Event('me-installable'));});window.addEventListener('appinstalled',function(){window.__mePrompt=null;});</script>`,
   `<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('${base}/sw.js',{scope:'${base}/'});});}</script>`,
 ].join('\n    ');
 

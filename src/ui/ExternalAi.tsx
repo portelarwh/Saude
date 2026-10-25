@@ -16,6 +16,7 @@ export function ExternalAiPanel({
   onAnswer,
   attachHint,
   disabled,
+  defaultOpen = false,
 }: {
   title?: string;
   description: string;
@@ -26,8 +27,9 @@ export function ExternalAiPanel({
   /** Ex.: "Anexe a foto do rótulo na conversa". */
   attachHint?: string;
   disabled?: boolean;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [answer, setAnswer] = useState('');
   const [status, setStatus] = useState<{ kind: 'info' | 'error' | 'success'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
