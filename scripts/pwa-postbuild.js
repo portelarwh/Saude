@@ -24,6 +24,13 @@ fs.writeFileSync(
   path.join(dist, 'versao.json'),
   JSON.stringify({ build, gerado_em: new Date().toISOString(), base_alimentos: { atualizado_em: foodBase.atualizado_em, total: foodBase.alimentos.length } }, null, 2),
 );
+// id do app = o caminho do app (/Saude/), não a raiz do domínio: no GitHub Pages
+// vários sites dividem portelarwh.github.io e o Chrome trataria todos como o mesmo app
+const manifestPath = path.join(dist, 'manifest.webmanifest');
+const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+manifest.id = `${base}/`;
+fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+
 const swPath = path.join(dist, 'sw.js');
 fs.writeFileSync(swPath, fs.readFileSync(swPath, 'utf8').replace('__BUILD_ID__', build));
 

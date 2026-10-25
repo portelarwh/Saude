@@ -282,6 +282,12 @@ async function flow() {
     const build = await page.getAttribute('meta[name="app-build"]', 'content');
     const v = await (await page.request.get(BASE + '/versao.json')).json();
     if (!build || v.build !== build) throw new Error('versao.json não corresponde ao build');
+    // critérios de instalação do próprio Chrome (o contexto de teste conta como anônimo)
+    const cdp = await ctx.newCDPSession(page);
+    const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');
+    const blocking = installabilityErrors.filter((e) => e.errorId !== 'in-incognito');
+    if (blocking.length) throw new Error('não instalável: ' + JSON.stringify(blocking));
+    if (manifest.id !== '/') throw new Error('id do app deve ser o caminho do app, recebido ' + manifest.id);
   });
   await step('aviso de atualização da base', async () => {
     await page.route('**/versao.json*', (route) => route.fulfill({ json: { build: 'novo-build', base_alimentos: { atualizado_em: '2099-01-01T00:00:00Z', total: 42 } } }));
