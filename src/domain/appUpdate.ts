@@ -5,6 +5,9 @@
 
 export interface PublishedVersion {
   build: string;
+  /** Versão exibida no app (ex.: "1.0.1"). */
+  versao?: string;
+  publicada_em?: string;
   gerado_em?: string;
   base_alimentos?: { atualizado_em: string; total: number };
 }
@@ -33,7 +36,7 @@ export function availableUpdate(runningBuild: string | null, running: FoodBaseIn
     message:
       added > 0
         ? `A base de alimentos ganhou ${plural(added, 'alimento novo', 'alimentos novos')} (total ${remote!.total}). Toque em Atualizar para baixar.`
-        : 'Há uma nova versão do app. Toque em Atualizar para baixar.',
+        : `Há uma nova versão do app${published.versao ? ` (${published.versao})` : ''}. Toque em Atualizar para baixar.`,
   };
 }
 
@@ -46,4 +49,18 @@ export function appliedFoodBaseUpdate(lastSeen: FoodBaseInfo | null, current: Fo
     title: 'Base de dados atualizada',
     message: added > 0 ? `${plural(added, 'alimento novo', 'alimentos novos')} na base (total ${current.total}).` : `A base de alimentos foi revisada (total ${current.total}).`,
   };
+}
+
+/** Resultado do "Verificar agora" na tela Sobre a versão. */
+export function versionCheckResult(running: { version: string; build: string | null }, published: PublishedVersion | null): { status: 'offline' | 'current' | 'newer'; message: string } {
+  if (!published) return { status: 'offline', message: 'Não foi possível consultar o servidor (sem internet?). Tente de novo mais tarde.' };
+  const differs = published.build !== running.build || (published.versao !== undefined && published.versao !== running.version);
+  if (!differs) return { status: 'current', message: 'Você já está na versão mais recente disponível no servidor.' };
+  return { status: 'newer', message: `Nova versão encontrada${published.versao && published.versao !== running.version ? `: ${running.version} → ${published.versao}` : ''}. Atualizando…` };
+}
+
+/** "2026-10-25" → "25/10/2026". */
+export function formatReleaseDate(iso: string | undefined | null): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? '');
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '—';
 }

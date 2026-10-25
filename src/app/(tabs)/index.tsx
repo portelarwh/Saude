@@ -16,6 +16,7 @@ import { MEAL_LABELS, type ActivityLog, type BodyAssessment, type DiaryEntry, ty
 import { useStore } from '../../state/AppProvider';
 import { useCollection, useCountedBeverages, useGoals, useProfile, useToday } from '../../state/hooks';
 import { IconButton, Notice, Row, Screen, T, type IconName } from '../../ui/components';
+import { VersionBadge } from '../../ui/VersionBadge';
 import { CalorieHero, InsightCard, MacroCard, MealCard, SectionTitle, StatCard, WaterGlasses, WeekStrip } from '../../ui/dashboard';
 import { ml, num, signed } from '../../ui/format';
 import { radius, spacing, useTheme } from '../../ui/theme';
@@ -81,7 +82,10 @@ export default function Home() {
             <T variant="small">{dateLabel}</T>
             <T variant="h1">{profile?.name ? `${greeting()}, ${profile.name.split(' ')[0]}` : greeting()}</T>
           </View>
-          <IconButton icon="person-circle-outline" size={34} label="Perfil e configurações" onPress={() => router.push('/perfil')} />
+          <Row style={{ alignItems: 'center', gap: spacing.sm }}>
+            <VersionBadge />
+            <IconButton icon="person-circle-outline" size={34} label="Perfil e configurações" onPress={() => router.push('/perfil')} />
+          </Row>
         </Row>
 
         <WeekStrip selected={date} today={today} onSelect={setDate} marked={marked} />

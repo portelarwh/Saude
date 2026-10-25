@@ -8,6 +8,7 @@
 - Persistência sempre via `DataStore` (`useStore`, `useCollection`); não acesse AsyncStorage/Supabase direto nas telas.
 - Esquema do banco em `supabase/migrations` (snake_case, RLS por `user_id`). Ao mudar o esquema, atualize os tipos em `src/domain/types.ts` e rode `npm run test:db`.
 - Edge Functions em `supabase/functions` (Deno); checagem: `deno check --config deno.json */index.ts`.
+- **Versão:** toda atualização publicada incrementa a versão com `npm run version:bump -- X.Y.Z` (correção = último número, novidade = do meio). Fonte única: `src/version.ts`; o script atualiza `app.json` e `package.json`, e o teste `version` confere.
 - Antes de concluir: `npm run check` (tipos, lint, testes) e, para telas, `npm run test:e2e`.
 
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.

@@ -5,6 +5,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { IconButton } from '../../ui/components';
 import { QuickAddTabButton } from '../../ui/QuickAdd';
+import { VersionBadge } from '../../ui/VersionBadge';
 import { useTheme } from '../../ui/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -42,7 +43,12 @@ export default function TabsLayout() {
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '800', fontSize: 20 },
         sceneStyle: { backgroundColor: colors.bg },
-        headerRight: () => <IconButton icon="person-circle-outline" size={28} label="Perfil e configurações" onPress={() => router.push('/perfil')} />,
+        headerRight: () => (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginRight: 8 }}>
+            <VersionBadge />
+            <IconButton icon="person-circle-outline" size={28} label="Perfil e configurações" onPress={() => router.push('/perfil')} />
+          </View>
+        ),
       }}
     >
       {TABS.slice(0, 2).map(tab)}

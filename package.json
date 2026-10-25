@@ -56,6 +56,7 @@
     "import:taco": "python3 scripts/import_taco.py",
     "test:db": "bash scripts/test-db.sh",
     "test:e2e": "node tests/e2e/run.js",
+    "version:bump": "node scripts/bump-version.js",
     "base:atualizar": "UPDATE_FOOD_BASE=1 jest foodBaseSync",
     "check": "npm run typecheck && npm run lint && npm test"
   },

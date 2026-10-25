@@ -19,10 +19,13 @@ for (const f of ['manifest.webmanifest', 'sw.js', 'icons/icon-192.png']) {
 
 // identifica este build (muda quando o código ou a base embutida mudam)
 const build = crypto.createHash('sha1').update(html).digest('hex').slice(0, 12);
+const versionSrc = fs.readFileSync(path.join(__dirname, '..', 'src/version.ts'), 'utf8');
+const version = versionSrc.match(/APP_VERSION = '([^']+)'/)[1];
+const released = versionSrc.match(/APP_RELEASE_DATE = '([^']+)'/)[1];
 const foodBase = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src/data/reference/alimentos-base.json'), 'utf8'));
 fs.writeFileSync(
   path.join(dist, 'versao.json'),
-  JSON.stringify({ build, gerado_em: new Date().toISOString(), base_alimentos: { atualizado_em: foodBase.atualizado_em, total: foodBase.alimentos.length } }, null, 2),
+  JSON.stringify({ build, versao: version, publicada_em: released, gerado_em: new Date().toISOString(), base_alimentos: { atualizado_em: foodBase.atualizado_em, total: foodBase.alimentos.length } }, null, 2),
 );
 // id do app = o caminho do app (/Saude/), não a raiz do domínio: no GitHub Pages
 // vários sites dividem portelarwh.github.io e o Chrome trataria todos como o mesmo app
@@ -52,4 +55,4 @@ if (!html.includes('rel="manifest"')) html = html.replace('</head>', `    ${tags
 fs.writeFileSync(indexPath, html);
 fs.copyFileSync(indexPath, path.join(dist, '404.html'));
 fs.writeFileSync(path.join(dist, '.nojekyll'), '');
-console.log(`PWA pronto em ${dist} (base "${base || '/'}", build ${build})`);
+console.log(`PWA pronto em ${dist} (base "${base || '/'}", versão ${version}, build ${build})`);

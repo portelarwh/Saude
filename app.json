@@ -3,7 +3,7 @@
     "name": "Meu Equilíbrio",
     "slug": "meu-equilibrio",
     "scheme": "meuequilibrio",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -26,7 +26,8 @@
       "blockedPermissions": [
         "RECORD_AUDIO"
       ],
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 10000
     },
     "web": {
       "favicon": "./assets/favicon.png",

@@ -289,6 +289,21 @@ async function flow() {
     if (blocking.length) throw new Error('não instalável: ' + JSON.stringify(blocking));
     if (manifest.id !== '/') throw new Error('id do app deve ser o caminho do app, recebido ' + manifest.id);
   });
+  await step('versão no topo e "Verificar agora"', async () => {
+    const version = fs.readFileSync(path.join(ROOT, 'src/version.ts'), 'utf8').match(/APP_VERSION = '([^']+)'/)[1];
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    await page.getByLabel(`Versão ${version}. Ver detalhes da versão`).first().click();
+    await page.waitForTimeout(400);
+    let body = await page.innerText('body');
+    if (!/Sobre a versão/.test(body) || !body.includes(`Versão atual: ${version}`)) throw new Error('pop-up da versão');
+    await click('Verificar agora');
+    await page.waitForTimeout(1200);
+    body = await page.innerText('body');
+    if (!/versão mais recente/.test(body)) throw new Error('verificação da versão: ' + body.slice(0, 200));
+    await shot('15-versao');
+    await click('Fechar');
+  });
   await step('aviso de atualização da base', async () => {
     await page.route('**/versao.json*', (route) => route.fulfill({ json: { build: 'novo-build', base_alimentos: { atualizado_em: '2099-01-01T00:00:00Z', total: 42 } } }));
     await page.goto(BASE + '/', { waitUntil: 'networkidle' });
