@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { isValidTime, weekdayLabel } from '../domain/dates';
+import { normalizeTime, parseTimeList, weekdayLabel } from '../domain/dates';
 import { countPerDay, defaultSettings, MAX_NOTIFICATIONS_PER_DAY, NOTIFICATION_KINDS, NOTIFICATION_LABELS, planNotifications } from '../domain/notifications';
 import type { NotificationSetting } from '../domain/types';
 import { expoScheduler, notificationsSupported, requestNotificationPermission, syncNotifications } from '../services/notifications';
 import { useStore } from '../state/AppProvider';
 import { useCollection } from '../state/hooks';
-import { Button, Card, Chip, Field, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
+import { Button, Card, Chip, Field, Notice, NumberField, Row, Screen, T, TimeField, Toggle } from '../ui/components';
 import { confirmAction } from '../ui/confirm';
 
 export default function Notifications() {
@@ -90,14 +90,17 @@ function SettingCard({ s, onChange }: { s: NotificationSetting; onChange: (patch
               label="Horários"
               value={timesText}
               onChangeText={setTimesText}
+              keyboardType="numbers-and-punctuation"
               onBlur={() => {
-                const times = timesText.split(',').map((t) => t.trim()).filter(Boolean);
-                if (times.every(isValidTime)) {
+                const times = parseTimeList(timesText);
+                if (times) {
                   setError(null);
+                  setTimesText(times.join(', '));
                   onChange({ times });
-                } else setError('Use HH:MM separados por vírgula.');
+                } else setError('Digite os horários só com números, separados por espaço. Ex.: 1230 1930');
               }}
-              placeholder="12:30, 19:30"
+              placeholder="Ex.: 1230 1930"
+              hint="Só números; separe vários horários com espaço."
               error={error}
             />
           )}
@@ -127,20 +130,15 @@ function SettingCard({ s, onChange }: { s: NotificationSetting; onChange: (patch
 function CommitField({ label, initial, onCommit, time, placeholder }: { label: string; initial: string | null; onCommit: (v: string | null) => void; time?: boolean; placeholder?: string }) {
   const [text, setText] = useState(initial ?? '');
   const [error, setError] = useState<string | null>(null);
-  return (
-    <Field
-      label={label}
-      value={text}
-      onChangeText={setText}
-      placeholder={placeholder}
-      error={error}
-      style={time ? { flex: 1 } : undefined}
-      onBlur={() => {
-        const v = text.trim();
-        if (time && v && !isValidTime(v)) return setError('Use HH:MM');
-        setError(null);
-        if (v !== (initial ?? '')) onCommit(v || null);
-      }}
-    />
-  );
+  const commit = (raw: string) => {
+    const v = time ? (raw.trim() ? normalizeTime(raw) : '') : raw.trim();
+    if (v === null) return setError('Hora inválida (ex.: 2200)');
+    setError(null);
+    if (time) setText(v);
+    if (v !== (initial ?? '')) onCommit(v || null);
+  };
+  if (time) {
+    return <TimeField label={label} value={text} onChangeText={setText} placeholder={placeholder?.replace(':', '')} error={error} style={{ flex: 1 }} onBlur={() => commit(text)} />;
+  }
+  return <Field label={label} value={text} onChangeText={setText} placeholder={placeholder} error={error} onBlur={() => commit(text)} />;
 }

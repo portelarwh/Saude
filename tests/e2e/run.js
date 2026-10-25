@@ -79,6 +79,15 @@ async function flow() {
     await click('Continuar');
   });
   await step('etapas opcionais', async () => {
+    await page.getByLabel('Acordo às', { exact: true }).fill('');
+    await page.getByLabel('Acordo às', { exact: true }).pressSequentially('630');
+    await page.getByLabel('Durmo às', { exact: true }).fill('');
+    await page.getByLabel('Durmo às', { exact: true }).pressSequentially('2300');
+    await page.getByLabel('Almoço', { exact: true }).pressSequentially('1230');
+    await page.getByLabel('Durmo às', { exact: true }).click();
+    const wake = await page.getByLabel('Acordo às', { exact: true }).inputValue();
+    const lunch = await page.getByLabel('Almoço', { exact: true }).inputValue();
+    if (wake !== '06:30' || lunch !== '12:30') throw new Error(`hora sem dois-pontos: ${wake} / ${lunch}`);
     await click('Continuar (opcional)');
     await click('Continuar (opcional)');
     await click('Continuar (opcional)');

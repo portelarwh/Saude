@@ -2,12 +2,12 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ACTIVITY_FACTORS } from '../domain/energy';
 import { assessTimeline, combineObjectives, normalizeHeightCm, profileObjectives } from '../domain/goals';
-import { formatDateBR, parseBRDate } from '../domain/dates';
+import { formatDateBR, normalizeTime, normalizeTimeFields, parseBRDate } from '../domain/dates';
 import type { Profile, Sex } from '../domain/types';
 import { recalculateGoals } from '../services/goalsService';
 import { useApp, useStore } from '../state/AppProvider';
 import { useGoals, useProfile } from '../state/hooks';
-import { Button, Card, ChipSelect, DateField, Divider, Field, HeightField, ListItem, MultiChipSelect, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
+import { Button, Card, ChipSelect, DateField, Divider, Field, HeightField, ListItem, TimeField, MultiChipSelect, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
 import { ACTIVITY_OPTIONS, HEALTH_FLAGS, RESTRICTIONS } from '../ui/labels';
 import { ObjectivesSelect } from '../ui/ObjectivesSelect';
 import { TimelineNotice } from '../ui/TimelineNotice';
@@ -34,7 +34,8 @@ function ProfileForm({ initial }: { initial: Profile }) {
   const submit = async () => {
     setMsg(null);
     if (birth && !parseBRDate(birth)) return setMsg('Data de nascimento inválida.');
-    const updated = await save({ ...p, height_cm: normalizeHeightCm(p.height_cm), objectives: profileObjectives(p), birth_date: parseBRDate(birth), target_date: parseBRDate(target) });
+    for (const t of [p.wake_time, p.sleep_time]) if (t && !normalizeTime(t)) return setMsg('Horário inválido: digite só os números, ex.: 0700.');
+    const updated = await save({ ...normalizeTimeFields(p), height_cm: normalizeHeightCm(p.height_cm), objectives: profileObjectives(p), birth_date: parseBRDate(birth), target_date: parseBRDate(target) });
     await recalculateGoals(store, updated, goalSet, 'Perfil atualizado');
     setMsg('Perfil salvo. Metas sugeridas recalculadas (metas suas ou prescritas foram mantidas).');
   };
@@ -93,8 +94,8 @@ function ProfileForm({ initial }: { initial: Profile }) {
         <Toggle label="Faço treino de força" value={Boolean(p.does_resistance_training)} onChange={(v) => set('does_resistance_training', v)} />
         <Field label="Rotina de trabalho" value={p.work_routine ?? ''} onChangeText={(t) => set('work_routine', t)} />
         <Row>
-          <Field label="Acordo às" value={p.wake_time ?? ''} onChangeText={(t) => set('wake_time', t)} style={{ flex: 1 }} />
-          <Field label="Durmo às" value={p.sleep_time ?? ''} onChangeText={(t) => set('sleep_time', t)} style={{ flex: 1 }} />
+          <TimeField label="Acordo às" value={p.wake_time ?? ''} onChangeText={(t) => set('wake_time', t)} style={{ flex: 1 }} />
+          <TimeField label="Durmo às" value={p.sleep_time ?? ''} onChangeText={(t) => set('sleep_time', t)} style={{ flex: 1 }} />
         </Row>
       </Card>
 

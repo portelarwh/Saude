@@ -8,13 +8,13 @@ import { Image, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ACTIVITY_FACTORS, bmi, bmiCategory } from '../domain/energy';
 import { assessTimeline, calculateGoals, combineObjectives, GOAL_KEYS, GOAL_LABELS, normalizeHeightCm, profileObjectives } from '../domain/goals';
-import { formatDateBR, isValidTime, parseBRDate } from '../domain/dates';
+import { formatDateBR, normalizeTime, normalizeTimeFields, parseBRDate } from '../domain/dates';
 import { defaultSettings } from '../domain/notifications';
 import type { BodyAssessment, Container, NotificationSetting, Profile, Sex, WeightEntry } from '../domain/types';
 import { useApp, useStore } from '../state/AppProvider';
 import { emptyProfile, useGoals, useProfile } from '../state/hooks';
 import { recalculateGoals } from '../services/goalsService';
-import { Button, Card, ChipSelect, DateField, Field, HeightField, MultiChipSelect, Notice, NumberField, ProgressBar, Row, Screen, T, Toggle } from '../ui/components';
+import { Button, Card, ChipSelect, DateField, Field, HeightField, MultiChipSelect, TimeField, Notice, NumberField, ProgressBar, Row, Screen, T, Toggle } from '../ui/components';
 import { num } from '../ui/format';
 import { ACTIVITY_OPTIONS, HEALTH_FLAGS, RESTRICTIONS } from '../ui/labels';
 import { ObjectivesSelect } from '../ui/ObjectivesSelect';
@@ -82,7 +82,7 @@ export default function Onboarding() {
     }
     if (step === 2 && targetDateText && !parseBRDate(targetDateText)) return 'Prazo inválido (use DD/MM/AAAA).';
     if (step === 3) {
-      for (const t of [p.wake_time, p.sleep_time]) if (t && !isValidTime(t)) return 'Use horários no formato HH:MM.';
+      for (const t of [p.wake_time, p.sleep_time, ...Object.values(p.meal_times ?? {})]) if (t && !normalizeTime(t)) return 'Horário inválido: digite só os números, ex.: 1700 para 17:00.';
     }
     return null;
   };
@@ -100,7 +100,7 @@ export default function Onboarding() {
       const now = new Date().toISOString();
       const splitList = (t: string) => t.split(',').map((x) => x.trim()).filter(Boolean);
       const profile = await save({
-        ...p,
+        ...normalizeTimeFields(p),
         name: p.name.trim(),
         height_cm: normalizeHeightCm(p.height_cm),
         objectives: profileObjectives(p),
@@ -238,16 +238,15 @@ export default function Onboarding() {
             <T variant="h2">Horários habituais</T>
             <T variant="small">Usados para lembretes e para distribuir a meta de água ao longo do dia.</T>
             <Row>
-              <Field label="Acordo às" value={p.wake_time ?? ''} onChangeText={(t) => set('wake_time', t)} placeholder="07:00" style={{ flex: 1 }} />
-              <Field label="Durmo às" value={p.sleep_time ?? ''} onChangeText={(t) => set('sleep_time', t)} placeholder="23:00" style={{ flex: 1 }} />
+              <TimeField label="Acordo às" value={p.wake_time ?? ''} onChangeText={(t) => set('wake_time', t)} placeholder="Ex.: 0700" style={{ flex: 1 }} />
+              <TimeField label="Durmo às" value={p.sleep_time ?? ''} onChangeText={(t) => set('sleep_time', t)} placeholder="Ex.: 2300" style={{ flex: 1 }} />
             </Row>
             {(['breakfast', 'lunch', 'afternoon_snack', 'dinner'] as const).map((m) => (
-              <Field
+              <TimeField
                 key={m}
                 label={{ breakfast: 'Café da manhã', lunch: 'Almoço', afternoon_snack: 'Lanche da tarde', dinner: 'Jantar' }[m]}
                 value={p.meal_times?.[m] ?? ''}
                 onChangeText={(t) => set('meal_times', { ...(p.meal_times ?? {}), [m]: t })}
-                placeholder="HH:MM"
               />
             ))}
           </>

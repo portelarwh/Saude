@@ -92,6 +92,53 @@ export function parseBRDate(text: string): ISODate | null {
   return toISODate(date);
 }
 
+/**
+ * Formata a hora enquanto digita, sem precisar de ":": "1700" → "17:00",
+ * "730" → "7:30" (vira 07:30 ao sair do campo). Hora com dois dígitos só se for até 23.
+ */
+export function maskTime(text: string): string {
+  const typedSep = /\d\s*[:h.]\s*\d*$/i.test(text.trim());
+  const d = text.replace(/\D/g, '').slice(0, 4);
+  if (!d) return '';
+  if (typedSep) {
+    const [h, m = ''] = text.split(/[:h.]/i);
+    const hh = h.replace(/\D/g, '').slice(-2);
+    return `${hh}:${m.replace(/\D/g, '').slice(0, 2)}`;
+  }
+  const twoDigitHour = d.length >= 2 && Number(d.slice(0, 2)) <= 23;
+  const hLen = twoDigitHour ? 2 : 1;
+  if (d.length <= hLen) return d;
+  return `${d.slice(0, hLen)}:${d.slice(hLen, hLen + 2)}`;
+}
+
+/** "1700", "17", "7", "730", "17:00", "17h30" → "HH:MM" (null se inválida). */
+export function normalizeTime(text: string | null | undefined): string | null {
+  const t = (text ?? '').trim();
+  if (!t) return null;
+  const masked = maskTime(t);
+  const [h, m = ''] = masked.split(':');
+  if (!h || m.length === 1) return null;
+  // sobrou dígito que a máscara descartou ("2460" → 2:46 + "0"): inválida
+  if (!/[:h.]/i.test(t) && h.length + m.length < t.replace(/\D/g, '').length) return null;
+  const hh = Number(h);
+  const mm = m ? Number(m) : 0;
+  if (!(hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59)) return null;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+/** Vários horários separados por espaço, vírgula ou ponto e vírgula: "1230 1930" → ["12:30", "19:30"]; null se algum for inválido. */
+export function parseTimeList(text: string): string[] | null {
+  const parts = text.split(/[,;\s]+/).filter(Boolean);
+  const out = parts.map(normalizeTime);
+  return out.every((t): t is string => t !== null) ? out : null;
+}
+
+/** Horários do perfil normalizados para salvar ("700" → "07:00"; vazio/ inválido → null). */
+export function normalizeTimeFields<T extends { wake_time: string | null; sleep_time: string | null; meal_times: Partial<Record<string, string>> | null }>(p: T): T {
+  const meal = p.meal_times ? Object.fromEntries(Object.entries(p.meal_times).map(([k, v]) => [k, normalizeTime(v)]).filter(([, v]) => v)) : null;
+  return { ...p, wake_time: normalizeTime(p.wake_time), sleep_time: normalizeTime(p.sleep_time), meal_times: meal && Object.keys(meal).length ? meal : null };
+}
+
 export function isValidTime(t: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
 }

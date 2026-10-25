@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ACTIVITY_LABELS, estimateActivityKcal, INTENSITY_LABELS } from '../domain/activities';
-import { formatDateBR, isValidTime, parseBRDate } from '../domain/dates';
+import { formatDateBR, normalizeTime, parseBRDate } from '../domain/dates';
 import type { ActivityLog, ActivityType, Intensity } from '../domain/types';
 import { useStore } from '../state/AppProvider';
 import { useProfile } from '../state/hooks';
-import { Button, Card, ChipSelect, DateField, Field, Notice, NumberField, Row, Screen, T } from '../ui/components';
+import { Button, Card, ChipSelect, DateField, Field, Notice, NumberField, Row, Screen, T, TimeField } from '../ui/components';
 
 export default function NewActivity() {
   const router = useRouter();
@@ -27,12 +27,13 @@ export default function NewActivity() {
   const save = async () => {
     const date = parseBRDate(dateText);
     if (!date) return setError('Data inválida.');
-    if (!isValidTime(timeText)) return setError('Horário inválido (HH:MM).');
+    const time = normalizeTime(timeText);
+    if (!time) return setError('Horário inválido: digite só os números, ex.: 1730.');
     if (!duration || duration <= 0 || duration > 1440) return setError('Informe a duração em minutos.');
     if (rpe !== null && (rpe < 1 || rpe > 10)) return setError('Esforço percebido deve ser de 1 a 10.');
     await store.insert<ActivityLog>('activities', {
       date,
-      started_at: new Date(`${date}T${timeText}:00`).toISOString(),
+      started_at: new Date(`${date}T${time}:00`).toISOString(),
       type,
       custom_name: custom.trim() || null,
       duration_min: Math.round(duration),
@@ -55,7 +56,7 @@ export default function NewActivity() {
       <Card>
         <Row>
           <DateField label="Data" value={dateText} onChangeText={setDateText} style={{ flex: 1 }} />
-          <Field label="Início" value={timeText} onChangeText={setTimeText} style={{ width: 110 }} />
+          <TimeField label="Início" value={timeText} onChangeText={setTimeText} style={{ width: 110 }} />
         </Row>
         <Row>
           <NumberField label="Duração" suffix="min" value={duration} onChange={setDuration} style={{ flex: 1 }} />

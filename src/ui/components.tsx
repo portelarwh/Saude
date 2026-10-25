@@ -19,7 +19,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { maskBRDate } from '../domain/dates';
+import { maskBRDate, maskTime, normalizeTime } from '../domain/dates';
 import { normalizeHeightCm } from '../domain/goals';
 import { font, radius, spacing, useTheme } from './theme';
 
@@ -150,7 +150,7 @@ export function Field({ label, hint, error, style, suffix, ...props }: TextInput
 }
 
 /** Campo numérico que aceita vírgula decimal; `null` = vazio (não informado). */
-export function NumberField({ value, onChange, ...rest }: Omit<React.ComponentProps<typeof Field>, 'value' | 'onChangeText' | 'onChange'> & { value: number | null | undefined; onChange: (v: number | null) => void }) {
+export function NumberField({ value, onChange, integer, ...rest }: Omit<React.ComponentProps<typeof Field>, 'value' | 'onChangeText' | 'onChange'> & { value: number | null | undefined; onChange: (v: number | null) => void; /** teclado só com números (sem vírgula) */ integer?: boolean }) {
   const format = (v: number | null | undefined) => (v === null || v === undefined ? '' : String(v).replace('.', ','));
   const [text, setText] = React.useState(format(value));
   const [lastValue, setLastValue] = React.useState(value);
@@ -162,7 +162,7 @@ export function NumberField({ value, onChange, ...rest }: Omit<React.ComponentPr
   return (
     <Field
       {...rest}
-      keyboardType="decimal-pad"
+      keyboardType={integer ? 'number-pad' : 'decimal-pad'}
       value={text}
       onChangeText={(t) => {
         setText(t);
@@ -177,11 +177,31 @@ export function DateField({ value, onChangeText, ...rest }: Omit<React.Component
   return <Field placeholder="DD/MM/AAAA" {...rest} value={value} keyboardType="number-pad" maxLength={10} onChangeText={(t) => onChangeText(maskBRDate(t))} />;
 }
 
+/** Hora HH:MM: digite só os números ("1700" → 17:00, "730" → 07:30). */
+export function TimeField({ value, onChangeText, onBlur, ...rest }: Omit<React.ComponentProps<typeof Field>, 'keyboardType' | 'maxLength'> & { value: string; onChangeText: (t: string) => void }) {
+  return (
+    <Field
+      placeholder="HH:MM"
+      {...rest}
+      value={value}
+      keyboardType="number-pad"
+      maxLength={5}
+      onChangeText={(t) => onChangeText(maskTime(t))}
+      onBlur={(e) => {
+        const n = normalizeTime(value);
+        if (n && n !== value) onChangeText(n);
+        onBlur?.(e);
+      }}
+    />
+  );
+}
+
 /** Altura em centímetros; se digitar em metros (1,75), converte para 175 ao sair do campo. */
 export function HeightField({ value, onChange, ...rest }: Omit<React.ComponentProps<typeof NumberField>, 'suffix'>) {
   return (
     <NumberField
       placeholder="Ex.: 175"
+      integer
       {...rest}
       suffix="cm"
       value={value}

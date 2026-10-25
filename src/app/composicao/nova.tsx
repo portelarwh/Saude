@@ -6,7 +6,7 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { METRIC_ORDER, METRICS, validateAssessmentDraft } from '../../domain/bodyComposition';
-import { formatDateBR, parseBRDate } from '../../domain/dates';
+import { formatDateBR, normalizeTime, parseBRDate } from '../../domain/dates';
 import type { BodyAssessment, BodyMetricKey, MeasurementConditions, MetricValue } from '../../domain/types';
 import { aiExtractBioimpedance } from '../../services/ai';
 import { pickDocument, uploadPrivateFile } from '../../services/files';
@@ -17,7 +17,7 @@ import { ExternalAiPanel } from '../../ui/ExternalAi';
 import { pickExamFile, shareExamWithPrompt } from '../../services/shareToAi';
 import { useApp, useStore } from '../../state/AppProvider';
 import { useProfile } from '../../state/hooks';
-import { Badge, Button, Card, Chip, ChipSelect, DateField, Field, Notice, NumberField, Row, Screen, T, Toggle } from '../../ui/components';
+import { Badge, Button, Card, Chip, ChipSelect, DateField, Field, Notice, NumberField, Row, Screen, T, TimeField, Toggle } from '../../ui/components';
 import { num } from '../../ui/format';
 
 const SEGMENT_LABELS = { right_arm: 'Braço direito', left_arm: 'Braço esquerdo', trunk: 'Tronco', right_leg: 'Perna direita', left_leg: 'Perna esquerda' } as const;
@@ -112,7 +112,7 @@ export default function NewAssessment() {
   const iso = (() => {
     const d = parseBRDate(dateText);
     if (!d) return '';
-    const t = /^\d{2}:\d{2}$/.test(timeText) ? timeText : '12:00';
+    const t = normalizeTime(timeText) ?? '12:00';
     return new Date(`${d}T${t}:00`).toISOString();
   })();
   const finalDraft: AssessmentDraft = { ...draft, measured_at: iso };
@@ -170,7 +170,7 @@ export default function NewAssessment() {
         <T variant="h3">Dados da avaliação</T>
         <Row>
           <DateField label="Data original do exame" value={dateText} onChangeText={setDateText} style={{ flex: 1 }} />
-          <Field label="Horário" value={timeText} onChangeText={setTimeText} placeholder="HH:MM" style={{ width: 110 }} />
+          <TimeField label="Horário" value={timeText} onChangeText={setTimeText} style={{ width: 110 }} />
         </Row>
         <Row>
           <Field label="Fabricante" value={draft.device_manufacturer ?? ''} onChangeText={(t) => setDraft((d) => ({ ...d, device_manufacturer: t || null }))} placeholder="InBody, Tanita…" style={{ flex: 1 }} />
