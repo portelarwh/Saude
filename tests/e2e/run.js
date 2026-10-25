@@ -49,6 +49,12 @@ async function flow() {
     await page.getByRole('switch').first().click();
     await click('Continuar');
   });
+  await step('LGPD não volta ao reabrir', async () => {
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    const body = await page.innerText('body');
+    if (/Autorizo o tratamento/.test(body) || !(await page.getByLabel('Nome', { exact: true }).count())) throw new Error('consentimento pedido de novo ao reabrir');
+  });
   await step('dados corporais', async () => {
     await fill('Nome', 'Ana Teste');
     await page.getByLabel('Data de nascimento', { exact: true }).pressSequentially('19101986');
@@ -97,6 +103,14 @@ async function flow() {
     if (!/Mifflin/.test(body)) throw new Error('explicação das metas ausente');
     await click('Concluir');
     await page.waitForTimeout(1500);
+  });
+  await step('app reaberto em nova aba vai direto ao painel', async () => {
+    const again = await ctx.newPage();
+    await again.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await again.waitForTimeout(1500);
+    const body = await again.innerText('body');
+    await again.close();
+    if (/Autorizo o tratamento|Bem-vindo ao Meu Equilíbrio/.test(body) || !/kcal para hoje|kcal restantes/.test(body)) throw new Error('cadastro reaparece ao abrir de novo: ' + body.slice(0, 300).replace(/\n/g, ' '));
   });
   await step('dashboard sem registros', async () => {
     const body = await page.innerText('body');

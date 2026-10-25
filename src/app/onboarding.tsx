@@ -10,11 +10,12 @@ import { ACTIVITY_FACTORS, bmi, bmiCategory } from '../domain/energy';
 import { assessTimeline, calculateGoals, combineObjectives, GOAL_KEYS, GOAL_LABELS, normalizeHeightCm, profileObjectives } from '../domain/goals';
 import { formatDateBR, normalizeTime, normalizeTimeFields, parseBRDate } from '../domain/dates';
 import { defaultSettings } from '../domain/notifications';
+import { resumeStep } from '../domain/onboarding';
 import type { BodyAssessment, Container, NotificationSetting, Profile, Sex, WeightEntry } from '../domain/types';
 import { useApp, useStore } from '../state/AppProvider';
 import { emptyProfile, useGoals, useProfile } from '../state/hooks';
 import { recalculateGoals } from '../services/goalsService';
-import { Button, Card, ChipSelect, DateField, Field, HeightField, MultiChipSelect, TimeField, Notice, NumberField, ProgressBar, Row, Screen, T, Toggle } from '../ui/components';
+import { Button, Card, Loading, ChipSelect, DateField, Field, HeightField, MultiChipSelect, TimeField, Notice, NumberField, ProgressBar, Row, Screen, T, Toggle } from '../ui/components';
 import { num } from '../ui/format';
 import { ACTIVITY_OPTIONS, HEALTH_FLAGS, RESTRICTIONS } from '../ui/labels';
 import { ObjectivesSelect } from '../ui/ObjectivesSelect';
@@ -27,14 +28,22 @@ const STEPS = ['Boas-vindas', 'Dados corporais', 'Rotina e objetivo', 'Horários
 
 
 
+/** Espera o perfil carregar: o cadastro retoma de onde parou (o consentimento LGPD só é pedido uma vez). */
 export default function Onboarding() {
+  const { profile, loading } = useProfile();
+  if (loading) return <Loading />;
+  return <OnboardingForm key={profile?.id ?? 'novo'} saved={profile} />;
+}
+
+function OnboardingForm({ saved: initial }: { saved: Profile | null }) {
   const router = useRouter();
   const store = useStore();
   const { mode } = useApp();
   const { colors } = useTheme();
-  const { profile: saved, save } = useProfile();
+  const { profile: live, save } = useProfile();
+  const saved = live ?? initial;
   const { goalSet } = useGoals();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => resumeStep(initial, STEPS.length));
   const [p, setP] = useState<Omit<Profile, 'id' | 'user_id' | 'created_at'>>(() => ({ ...emptyProfile(), ...(saved ?? {}) }));
   const [birthText, setBirthText] = useState(saved?.birth_date ? formatDateBR(saved.birth_date) : '');
   const [targetDateText, setTargetDateText] = useState(saved?.target_date ? formatDateBR(saved.target_date) : '');
@@ -87,10 +96,30 @@ export default function Onboarding() {
     return null;
   };
 
+  const profilePatch = (now: string): Partial<Profile> => {
+    const splitList = (t: string) => t.split(',').map((x) => x.trim()).filter(Boolean);
+    return {
+      ...normalizeTimeFields(p),
+      name: p.name.trim(),
+      height_cm: normalizeHeightCm(p.height_cm),
+      objectives: profileObjectives(p),
+      birth_date: parseBRDate(birthText),
+      target_date: parseBRDate(targetDateText),
+      allergies: splitList(allergiesText),
+      intolerances: splitList(intolerancesText),
+      consent_health_data_at: saved?.consent_health_data_at ?? (consentHealth ? now : null),
+      consent_ai_at: consentAi ? saved?.consent_ai_at ?? now : null,
+    };
+  };
+
   const next = () => {
     const e = validate();
     setError(e);
-    if (!e) setStep((s) => Math.min(STEPS.length - 1, s + 1));
+    if (e) return;
+    const to = Math.min(STEPS.length - 1, step + 1);
+    setStep(to);
+    // guarda o que já foi preenchido: ao reabrir o app, continua daqui
+    save({ ...profilePatch(new Date().toISOString()), settings: { ...(saved?.settings ?? {}), onboarding_step: to } }).catch(() => undefined);
   };
 
   const finish = async () => {
@@ -98,20 +127,9 @@ export default function Onboarding() {
     setError(null);
     try {
       const now = new Date().toISOString();
-      const splitList = (t: string) => t.split(',').map((x) => x.trim()).filter(Boolean);
-      const profile = await save({
-        ...normalizeTimeFields(p),
-        name: p.name.trim(),
-        height_cm: normalizeHeightCm(p.height_cm),
-        objectives: profileObjectives(p),
-        birth_date: parseBRDate(birthText),
-        target_date: parseBRDate(targetDateText),
-        allergies: splitList(allergiesText),
-        intolerances: splitList(intolerancesText),
-        consent_health_data_at: saved?.consent_health_data_at ?? now,
-        consent_ai_at: consentAi ? saved?.consent_ai_at ?? now : null,
-        onboarding_completed: true,
-      });
+      const settings = { ...(saved?.settings ?? {}) };
+      delete settings.onboarding_step;
+      const profile = await save({ ...profilePatch(now), consent_health_data_at: saved?.consent_health_data_at ?? now, settings, onboarding_completed: true });
       await recalculateGoals(store, profile, goalSet, 'Metas iniciais');
       if (!saved?.onboarding_completed) {
         if (p.current_weight_kg) await store.insert<WeightEntry>('weight_entries', { measured_at: now, weight_kg: p.current_weight_kg, source: 'manual', note: 'Peso inicial' });
