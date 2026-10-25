@@ -82,7 +82,8 @@ function allowed(slot: Slot, profile: Pick<Profile, 'food_restrictions' | 'aller
   if (r.includes('vegano') && (DAIRY.test(q) || /ovo/.test(q))) return false;
   if ((r.includes('sem lactose') || avoid.some((a) => a.includes('lactose'))) && DAIRY.test(q)) return false;
   if ((r.includes('sem gluten') || avoid.some((a) => a.includes('gluten'))) && GLUTEN.test(q)) return false;
-  if (r.includes('sem carne vermelha') && /patinho|bovina/.test(q)) return false;
+  if (r.includes('sem carne vermelha') && /patinho|bovina|carne/.test(q)) return false;
+  if (r.includes('sem frutos do mar') && /peixe|camarao|atum|sardinha|salmao|tilapia/.test(q)) return false;
   return !avoid.some((a) => a.length > 2 && q.includes(a));
 }
 

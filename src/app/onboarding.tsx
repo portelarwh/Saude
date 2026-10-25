@@ -17,7 +17,8 @@ import { emptyProfile, useGoals, useProfile } from '../state/hooks';
 import { recalculateGoals } from '../services/goalsService';
 import { Button, Card, Loading, ChipSelect, DateField, Field, HeightField, MultiChipSelect, TimeField, Notice, NumberField, ProgressBar, Row, Screen, T, Toggle } from '../ui/components';
 import { num } from '../ui/format';
-import { ACTIVITY_OPTIONS, HEALTH_FLAGS, RESTRICTIONS } from '../ui/labels';
+import { ACTIVITY_OPTIONS, HEALTH_FLAGS } from '../ui/labels';
+import { RestrictionsSelect } from '../ui/RestrictionsSelect';
 import { ObjectivesSelect } from '../ui/ObjectivesSelect';
 import { TimelineNotice } from '../ui/TimelineNotice';
 import { spacing, useTheme } from '../ui/theme';
@@ -273,10 +274,10 @@ function OnboardingForm({ saved: initial }: { saved: Profile | null }) {
         {step === 4 && (
           <>
             <T variant="h2">Alimentação</T>
-            <MultiChipSelect label="Restrições e padrões" options={RESTRICTIONS.map((r) => ({ value: r, label: r }))} value={p.food_restrictions ?? []} onChange={(v) => set('food_restrictions', v)} />
-            <Field label="Alergias" value={allergiesText} onChangeText={setAllergiesText} placeholder="Ex.: amendoim, camarão" hint="Separe por vírgulas" />
-            <Field label="Intolerâncias" value={intolerancesText} onChangeText={setIntolerancesText} placeholder="Ex.: lactose" />
-            <Field label="Preferências" value={p.food_preferences ?? ''} onChangeText={(t) => set('food_preferences', t)} placeholder="Alimentos de que gosta, o que costuma comer, orçamento" multiline />
+            <RestrictionsSelect value={p.food_restrictions ?? []} onChange={(v) => set('food_restrictions', v)} />
+            <Field label="Alergias (não pode comer)" value={allergiesText} onChangeText={setAllergiesText} placeholder="Ex.: amendoim, camarão" hint="Separe por vírgulas. Ficam fora de qualquer sugestão." />
+            <Field label="Intolerâncias (faz mal)" value={intolerancesText} onChangeText={setIntolerancesText} placeholder="Ex.: lactose" />
+            <Field label="Do que você gosta" value={p.food_preferences ?? ''} onChangeText={(t) => set('food_preferences', t)} placeholder="Alimentos de que gosta, o que costuma comer, orçamento" multiline />
           </>
         )}
 

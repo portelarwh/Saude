@@ -8,7 +8,8 @@ import { recalculateGoals } from '../services/goalsService';
 import { useApp, useStore } from '../state/AppProvider';
 import { useGoals, useProfile } from '../state/hooks';
 import { Button, Card, ChipSelect, DateField, Divider, Field, HeightField, ListItem, TimeField, MultiChipSelect, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
-import { ACTIVITY_OPTIONS, HEALTH_FLAGS, RESTRICTIONS } from '../ui/labels';
+import { ACTIVITY_OPTIONS, HEALTH_FLAGS } from '../ui/labels';
+import { RestrictionsSelect } from '../ui/RestrictionsSelect';
 import { ObjectivesSelect } from '../ui/ObjectivesSelect';
 import { TimelineNotice } from '../ui/TimelineNotice';
 
@@ -101,10 +102,10 @@ function ProfileForm({ initial }: { initial: Profile }) {
 
       <Card>
         <T variant="h3">Alimentação</T>
-        <MultiChipSelect label="Restrições" options={RESTRICTIONS.map((r) => ({ value: r, label: r }))} value={p.food_restrictions ?? []} onChange={(v) => set('food_restrictions', v)} />
-        <Field label="Alergias" value={(p.allergies ?? []).join(', ')} onChangeText={(t) => set('allergies', t.split(',').map((x) => x.trim()).filter(Boolean))} />
-        <Field label="Intolerâncias" value={(p.intolerances ?? []).join(', ')} onChangeText={(t) => set('intolerances', t.split(',').map((x) => x.trim()).filter(Boolean))} />
-        <Field label="Preferências" value={p.food_preferences ?? ''} onChangeText={(t) => set('food_preferences', t)} multiline />
+        <RestrictionsSelect value={p.food_restrictions ?? []} onChange={(v) => set('food_restrictions', v)} />
+        <Field label="Alergias (não pode comer)" value={(p.allergies ?? []).join(', ')} onChangeText={(t) => set('allergies', t.split(',').map((x) => x.trim()).filter(Boolean))} />
+        <Field label="Intolerâncias (faz mal)" value={(p.intolerances ?? []).join(', ')} onChangeText={(t) => set('intolerances', t.split(',').map((x) => x.trim()).filter(Boolean))} />
+        <Field label="Do que você gosta" value={p.food_preferences ?? ''} onChangeText={(t) => set('food_preferences', t)} multiline />
       </Card>
 
       <Card>

@@ -60,6 +60,13 @@ describe('proposta orientativa', () => {
     expect(names.some((n) => /iogurte|queijo|leite/.test(n))).toBe(false);
   });
 
+  it('"Não como carne vermelha" tira a carne bovina do plano', () => {
+    const g = generatePlan(goals, { food_restrictions: ['Sem carne vermelha'], allergies: [], intolerances: [] }, foods);
+    const names = g.plan.meals.flatMap((m) => m.options.flatMap((o) => o.items.map((i) => i.food_name.toLowerCase())));
+    expect(names.some((n) => /bovina|patinho/.test(n))).toBe(false);
+    expect(names.some((n) => /frango/.test(n))).toBe(true);
+  });
+
   it('respeita alergias informadas', () => {
     const g = generatePlan(goals, { food_restrictions: [], allergies: ['ovo'], intolerances: [] }, foods);
     const names = g.plan.meals.flatMap((m) => m.options.flatMap((o) => o.items.map((i) => i.food_name.toLowerCase())));
