@@ -101,3 +101,53 @@ describe('padrões da resposta colada', () => {
     expect(d.meals[0].options[0].items[0]).toEqual({ food_name: 'arroz', amount: null, unit: null, note: null });
   });
 });
+
+describe('bioimpedância colada do ChatGPT (laudo InBody120 real)', () => {
+  const raw = JSON.stringify(require('./fixtures/inbody120-chatgpt.json'));
+
+  it('importa sem erro e mantém todos os indicadores principais', () => {
+    const ex = parseExternalBioimpedance(raw);
+    expect(ex.device_model).toBe('InBody120');
+    expect(ex.metrics).toHaveLength(11);
+    expect(ex.metrics.find((m) => m.key === 'visceral_fat_level')).toMatchObject({ value: 18, unit: '' });
+    const { draft } = bioExtractionToDraft(ex, null);
+    expect(draft.metrics.body_fat_pct).toEqual({ value: 35.5, unit: '%' });
+    expect(draft.metrics.skeletal_muscle_mass_kg).toEqual({ value: 42.2, unit: 'kg' });
+  });
+
+  it('segmentar em português vira segmento e tipo do app', () => {
+    const ex = parseExternalBioimpedance(raw);
+    expect(ex.segmental).toHaveLength(10);
+    expect(ex.segmental).toContainEqual({ segment: 'left_arm', kind: 'lean_mass', value: 4.31, unit: 'kg' });
+    expect(ex.segmental).toContainEqual({ segment: 'trunk', kind: 'fat_mass', value: 21.4, unit: 'kg' });
+    expect(ex.segmental).toContainEqual({ segment: 'right_leg', kind: 'lean_mass', value: 11.11, unit: 'kg' });
+  });
+
+  it('impedância e "68/100" vão para outros indicadores, sem inventar nada', () => {
+    const ex = parseExternalBioimpedance(raw);
+    expect(ex.other_metrics).toContainEqual({ label: 'Impedância braço direito 20 kHz', value: 254.4, unit: 'Ω' });
+    expect(ex.other_metrics).toContainEqual({ label: 'Impedância tronco 100 kHz', value: 16.8, unit: 'Ω' });
+    expect(ex.other_metrics).toContainEqual({ label: 'Pontuação InBody', value: 68, unit: 'Pontos (de 100)' });
+    expect(ex.other_metrics).toContainEqual({ label: 'Idade', value: 41, unit: '' });
+    expect(ex.other_metrics).toHaveLength(10 + 9);
+    // percentuais do ideal e classificações não entram
+    expect(JSON.stringify(ex)).not.toMatch(/571\.5|Acima/);
+  });
+
+  it('o formato pedido pelo app (o novo exemplo do prompt) também passa', () => {
+    const ex = parseExternalBioimpedance(JSON.stringify({ measured_at: null, metrics: [], segmental: [{ segment: 'left_arm', kind: 'lean_mass', value: 3.1, unit: 'kg' }], other_metrics: [] }));
+    expect(ex.segmental).toEqual([{ segment: 'left_arm', kind: 'lean_mass', value: 3.1, unit: 'kg' }]);
+  });
+
+  it('o que não dá para aproveitar vira aviso, e erros de formato vêm todos juntos', () => {
+    const ex = parseExternalBioimpedance(JSON.stringify({ metrics: [{ key: 'weight_kg', value: 'ilegível', unit: 'kg', printed_label: 'Peso' }] }));
+    expect(ex.metrics).toEqual([]);
+    expect(ex.warnings[0]).toMatch(/Peso.*não é um número/);
+    expect(() => parseExternalMeal('{"items":[{"quantity":"dois"},{"quantity":"três"}]}')).toThrow(/items\.0.*items\.1/);
+  });
+
+  it('a pergunta lista os valores aceitos de segmento e tipo', () => {
+    const p = buildExternalPrompt('bioimpedance', {});
+    for (const v of ['right_arm', 'left_arm', 'trunk', 'right_leg', 'left_leg', 'lean_mass', 'fat_mass', 'muscle_mass', 'Impedância']) expect(p).toContain(v);
+  });
+});

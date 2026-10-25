@@ -1,0 +1,53 @@
+{
+  "measured_at": "2026-08-10T16:05:00",
+  "device_manufacturer": "InBody",
+  "device_model": "InBody120",
+  "metrics": [
+    { "key": "weight_kg", "value": 114.3, "unit": "kg", "printed_label": "Peso" },
+    { "key": "bmi", "value": 36.9, "unit": "kg/m²", "printed_label": "IMC" },
+    { "key": "fat_mass_kg", "value": 40.6, "unit": "kg", "printed_label": "Massa de Gordura" },
+    { "key": "body_fat_pct", "value": 35.5, "unit": "%", "printed_label": "PGC" },
+    { "key": "fat_free_mass_kg", "value": 73.7, "unit": "kg", "printed_label": "Massa Livre de Gordura" },
+    { "key": "skeletal_muscle_mass_kg", "value": 42.2, "unit": "kg", "printed_label": "Massa Muscular Esquelética" },
+    { "key": "visceral_fat_level", "value": 18, "unit": null, "printed_label": "Nível de Gordura Visceral" },
+    { "key": "total_body_water_l", "value": 54.0, "unit": "L", "printed_label": "Água Corporal Total" },
+    { "key": "bmr_kcal", "value": 1962, "unit": "kcal", "printed_label": "Taxa Metabólica Basal" },
+    { "key": "protein_kg", "value": 14.6, "unit": "kg", "printed_label": "Proteína" },
+    { "key": "mineral_kg", "value": 5.09, "unit": "kg", "printed_label": "Minerais" }
+  ],
+  "segmental": [
+    { "analysis": "Análise da Massa Magra Segmentar", "segment": "Braço esquerdo", "value": 4.31, "unit": "kg", "percentage": 119.5, "percentage_unit": "%", "classification": "Acima" },
+    { "analysis": "Análise da Massa Magra Segmentar", "segment": "Braço direito", "value": 4.51, "unit": "kg", "percentage": 124.3, "percentage_unit": "%", "classification": "Acima" },
+    { "analysis": "Análise da Massa Magra Segmentar", "segment": "Tronco", "value": 32.8, "unit": "kg", "percentage": 108.9, "percentage_unit": "%", "classification": "Normal" },
+    { "analysis": "Análise da Massa Magra Segmentar", "segment": "Perna esquerda", "value": 10.90, "unit": "kg", "percentage": 99.0, "percentage_unit": "%", "classification": "Normal" },
+    { "analysis": "Análise da Massa Magra Segmentar", "segment": "Perna direita", "value": 11.11, "unit": "kg", "percentage": 100.9, "percentage_unit": "%", "classification": "Normal" },
+    { "analysis": "Análise da Gordura Segmentar", "segment": "Braço esquerdo", "value": 3.5, "unit": "kg", "percentage": 571.5, "percentage_unit": "%", "classification": "Acima" },
+    { "analysis": "Análise da Gordura Segmentar", "segment": "Braço direito", "value": 3.4, "unit": "kg", "percentage": 556.1, "percentage_unit": "%", "classification": "Acima" },
+    { "analysis": "Análise da Gordura Segmentar", "segment": "Tronco", "value": 21.4, "unit": "kg", "percentage": 495.5, "percentage_unit": "%", "classification": "Acima" },
+    { "analysis": "Análise da Gordura Segmentar", "segment": "Perna esquerda", "value": 5.3, "unit": "kg", "percentage": 301.5, "percentage_unit": "%", "classification": "Acima" },
+    { "analysis": "Análise da Gordura Segmentar", "segment": "Perna direita", "value": 5.4, "unit": "kg", "percentage": 305.7, "percentage_unit": "%", "classification": "Acima" },
+    { "analysis": "Impedância", "segment": "BD", "frequency": 20, "frequency_unit": "kHz", "value": 254.4, "unit": "Ω" },
+    { "analysis": "Impedância", "segment": "BE", "frequency": 20, "frequency_unit": "kHz", "value": 270.1, "unit": "Ω" },
+    { "analysis": "Impedância", "segment": "TR", "frequency": 20, "frequency_unit": "kHz", "value": 19.8, "unit": "Ω" },
+    { "analysis": "Impedância", "segment": "PD", "frequency": 20, "frequency_unit": "kHz", "value": 198.6, "unit": "Ω" },
+    { "analysis": "Impedância", "segment": "PE", "frequency": 20, "frequency_unit": "kHz", "value": 204.2, "unit": "Ω" },
+    { "analysis": "Impedância", "segment": "BD", "frequency": 100, "frequency_unit": "kHz", "value": 222.8, "unit": "Ω" },
+    { "analysis": "Impedância", "segment": "BE", "frequency": 100, "frequency_unit": "kHz", "value": 238.4, "unit": "Ω" },
+    { "analysis": "Impedância", "segment": "TR", "frequency": 100, "frequency_unit": "kHz", "value": 16.8, "unit": "Ω" },
+    { "analysis": "Impedância", "segment": "PD", "frequency": 100, "frequency_unit": "kHz", "value": 172.9, "unit": "Ω" },
+    { "analysis": "Impedância", "segment": "PE", "frequency": 100, "frequency_unit": "kHz", "value": 177.4, "unit": "Ω" }
+  ],
+  "other_metrics": [
+    { "label": "Altura", "value": 176, "unit": "cm" },
+    { "label": "Idade", "value": 41, "unit": null },
+    { "label": "Pontuação InBody", "value": "68/100", "unit": "Pontos" },
+    { "label": "Peso Ideal", "value": 86.7, "unit": "kg" },
+    { "label": "Controle de Peso", "value": -27.6, "unit": "kg" },
+    { "label": "Controle de Gordura", "value": -27.6, "unit": "kg" },
+    { "label": "Controle Muscular", "value": 0.0, "unit": "kg" },
+    { "label": "Relação Cintura-Quadril", "value": 0.97, "unit": null },
+    { "label": "Grau de Obesidade", "value": 168, "unit": "%" }
+  ],
+  "visceral_fat_scale": null,
+  "warnings": []
+}
