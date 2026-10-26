@@ -16,6 +16,7 @@ interface Slot {
   grams: number;
   role: 'protein' | 'carb' | 'fat' | 'veg' | 'fruit' | 'dairy' | 'drink';
   scalable?: boolean; // porção ajustada para a meta calórica
+  fixed?: boolean; // porção que nunca é ajustada (ex.: castanhas)
   unit?: string;
 }
 
@@ -98,16 +99,41 @@ function substitute(slot: Slot, profile: Pick<Profile, 'food_restrictions' | 'al
   return null;
 }
 
+/** Low carb: gordura boa e proteína extra nos lanches. */
+const LOW_CARB_EXTRAS: Partial<Record<MealType, Slot[]>> = {
+  afternoon_snack: [{ query: 'castanha-de-caju', grams: 20, role: 'fat', fixed: true }, { query: 'abacate', grams: 100, role: 'fat', fixed: true }],
+  breakfast: [{ query: 'queijo minas', grams: 30, role: 'dairy', fixed: true }],
+};
+
+const SUGARY = /acucar|mel\b|achocolatado|doce|suco|refrigerante|geleia|biscoito|bolo|chocolate/;
+/** Menos açúcar: frutas de menor teor de açúcar no lugar das mais doces. */
+const LOWER_SUGAR_FRUIT: Record<string, string> = { banana: 'morango', manga: 'morango', uva: 'morango' };
+
 export function generatePlan(goals: GoalTargets, profile: Pick<Profile, 'food_restrictions' | 'allergies' | 'intolerances'>, foods: Food[]): GeneratedPlan {
   const explanations: string[] = [];
+  const restrictions = (profile.food_restrictions ?? []).map(normalizeText);
+  const lowCarb = restrictions.includes('low carb');
+  const lessSugar = restrictions.includes('pouco acucar');
+  const lookup = new Map<string, Food | undefined>();
+  const find = (q: string) => {
+    if (!lookup.has(q)) lookup.set(q, searchFoods(foods, q, 1)[0]?.food);
+    return lookup.get(q);
+  };
   const resolve = (slot: Slot): PlanItem | null => {
-    const s = allowed(slot, profile) ? slot : substitute(slot, profile);
+    let base = slot;
+    if (lessSugar) {
+      if (SUGARY.test(normalizeText(slot.query))) return null;
+      const swap = LOWER_SUGAR_FRUIT[normalizeText(slot.query)];
+      if (slot.role === 'fruit' && swap && find(swap)) base = { ...slot, query: swap, grams: 150 };
+    }
+    const s = allowed(base, profile) ? base : substitute(base, profile);
     if (!s) return null;
-    const food = searchFoods(foods, s.query, 1)[0]?.food;
+    const food = find(s.query);
     if (!food) return null;
     return { food_name: food.name, amount: s.grams, unit: food.base_unit, amount_g: s.grams, food_id: food.id, per100: food.per100, note: s.scalable ? 'porção ajustável' : null };
   };
-  const build = (scale: number): PlanMeal[] =>
+  // carbScale: arroz, pão, aveia e batata; no low carb, fatScale (azeite, castanhas) e proteinScale completam as calorias
+  const build = (carbScale: number, proteinScale = 1, fatScale = 1): PlanMeal[] =>
     TEMPLATES.map((t) => ({
       name: t.name,
       meal: t.meal,
@@ -115,16 +141,43 @@ export function generatePlan(goals: GoalTargets, profile: Pick<Profile, 'food_re
       selected_option: 0,
       options: t.options.map((slots, i) => ({
         label: `Opção ${i + 1}`,
-        items: slots
-          .map((sl) => resolve(sl.scalable ? { ...sl, grams: Math.round((sl.grams * scale) / 5) * 5 } : sl))
+        items: [...slots, ...(lowCarb ? LOW_CARB_EXTRAS[t.meal] ?? [] : [])]
+          .map((sl) => {
+            const g = (k: number) => Math.round((sl.grams * k) / 5) * 5;
+            if (sl.fixed) return resolve(sl);
+            if (sl.scalable) return resolve({ ...sl, grams: g(carbScale) });
+            if (sl.role === 'fat' && fatScale !== 1) return resolve({ ...sl, grams: g(fatScale) });
+            if (sl.role === 'protein' && proteinScale !== 1) return resolve({ ...sl, grams: g(proteinScale) });
+            return resolve(sl);
+          })
           .filter((x): x is PlanItem => Boolean(x)),
       })),
     }));
+  const totals = (c: number, pr = 1, f = 1) => planNutrition({ meals: build(c, pr, f) }).total.values;
+  const argmin = (from: number, to: number, step: number, cost: (x: number) => number) => {
+    let best = { x: from, cost: Infinity };
+    for (let x = from; x <= to + 1e-9; x += step) {
+      const c = cost(x);
+      if (c < best.cost) best = { x, cost: c };
+    }
+    return best.x;
+  };
 
-  // Ajuste das porções de carboidrato para aproximar da meta (busca simples por escala)
   const target = goals.energy_kcal.value;
+  const carbTarget = goals.carbs_g.value;
   let scale = 1;
-  if (target) {
+  let proteinScale = 1;
+  let lowCarbFat = 1;
+  if (target && lowCarb && carbTarget) {
+    // 1) carboidrato na meta; 2) proteína na meta; 3) azeite (até 15 g por refeição) completa as calorias
+    const proteinTarget = goals.protein_g.value;
+    scale = argmin(0.1, 2, 0.05, (c) => Math.abs(totals(c).carbs_g - carbTarget));
+    if (proteinTarget) proteinScale = argmin(1, 1.4, 0.05, (pr) => Math.abs(totals(scale, pr).protein_g - proteinTarget));
+    lowCarbFat = argmin(1, 3, 0.25, (f) => Math.abs(totals(scale, proteinScale, f).energy_kcal - target));
+    explanations.push(
+      `Low carb moderado: porções de arroz, pão, aveia e batata em ${Math.round(scale * 100)}% da porção base para ficar perto de ${carbTarget} g de carboidrato; castanhas e abacate no lanche e azeite (${Math.round(lowCarbFat * 100)}%)${proteinScale > 1 ? ` e proteínas (${Math.round(proteinScale * 100)}%)` : ''} completam ~${target} kcal. Legumes e verduras à vontade.`,
+    );
+  } else if (target) {
     let best = { scale: 1, diff: Infinity };
     for (let s = 0.5; s <= 3.01; s += 0.05) {
       const kcal = planNutrition({ meals: build(s) }).total.values.energy_kcal;
@@ -136,9 +189,14 @@ export function generatePlan(goals: GoalTargets, profile: Pick<Profile, 'food_re
   } else {
     explanations.push('Sem meta calórica definida: porções de referência sem ajuste.');
   }
-  const meals = build(scale);
+  if (lowCarb && !carbTarget) explanations.push('Low carb marcado, mas sem meta de carboidrato: recalcule as metas para aplicar a faixa de 100–130 g/dia.');
+  if (lessSugar) explanations.push('Menos açúcar: nada com açúcar adicionado, sucos ou doces; iogurte natural; até 2 porções de fruta por dia, preferindo as menos doces (ex.: morango no lugar de banana).');
+  const meals = build(scale, proteinScale, lowCarbFat);
   const n = planNutrition({ meals });
   const proteinTarget = goals.protein_g.value;
+  if (lowCarb && target && n.total.values.energy_kcal < target * 0.92) {
+    explanations.push(`A proposta low carb fica em ~${Math.round(n.total.values.energy_kcal)} kcal: para chegar a ${target} kcal sem subir o carboidrato, aumente ovos, queijos, azeite ou castanhas.`);
+  }
   explanations.push('Uma fonte de proteína em cada refeição principal ajuda na saciedade e na preservação da massa muscular.');
   explanations.push('Base em alimentos brasileiros acessíveis (arroz, feijão, ovos, frango, frutas), com uma alternativa por refeição para variar.');
   if (proteinTarget && n.total.values.protein_g < proteinTarget * 0.9) {

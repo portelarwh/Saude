@@ -42,31 +42,63 @@ export function katchMcArdle(fatFreeMassKg: number): number {
 }
 
 /**
- * Escolhe a equação conforme os dados disponíveis. Mifflin–St Jeor é a
- * preferida; Katch–McArdle é usada quando faltam sexo/idade mas há MLG medida.
- * Retorna null quando os dados não permitem uma estimativa responsável.
+ * Escolhe a equação conforme os dados disponíveis. Com massa livre de gordura
+ * MEDIDA (bioimpedância), usa Katch–McArdle — que considera a composição
+ * corporal — e mostra Mifflin–St Jeor para comparação. Sem medida, usa
+ * Mifflin–St Jeor. Retorna null quando os dados não permitem uma estimativa responsável.
  */
 export function estimateBmr(input: BmrInput): BmrResult | null {
   const { weight_kg, height_cm, age, sex, fat_free_mass_kg } = input;
-  if (weight_kg && height_cm && age !== null && age > 0 && sex) {
-    const kcal = mifflinStJeor(weight_kg, height_cm, age, sex);
-    return {
-      kcal,
-      method: 'mifflin_st_jeor',
-      explanation:
-        `Mifflin–St Jeor: 10×${weight_kg} kg + 6,25×${height_cm} cm − 5×${age} anos ` +
-        `${sex === 'male' ? '+ 5' : '− 161'} = ${Math.round(kcal)} kcal/dia.`,
-    };
-  }
+  const canMifflin = Boolean(weight_kg && height_cm && age !== null && age > 0 && sex);
+  const mifflin = canMifflin ? mifflinStJeor(weight_kg!, height_cm!, age!, sex!) : null;
+  const mifflinText =
+    mifflin !== null
+      ? `Mifflin–St Jeor: 10×${weight_kg} kg + 6,25×${height_cm} cm − 5×${age} anos ${sex === 'male' ? '+ 5' : '− 161'} = ${Math.round(mifflin)} kcal/dia.`
+      : '';
   if (fat_free_mass_kg && fat_free_mass_kg > 0) {
     const kcal = katchMcArdle(fat_free_mass_kg);
+    const compare = mifflin !== null ? ` Para comparação, ${mifflinText.replace('Mifflin–St Jeor:', 'Mifflin–St Jeor (sem composição corporal):')}` : '';
     return {
       kcal,
       method: 'katch_mcardle',
-      explanation: `Katch–McArdle: 370 + 21,6×${fat_free_mass_kg} kg de massa livre de gordura = ${Math.round(kcal)} kcal/dia.`,
+      explanation: `Katch–McArdle, com a massa livre de gordura da sua bioimpedância: 370 + 21,6×${fat_free_mass_kg} kg = ${Math.round(kcal)} kcal/dia.${compare}`,
     };
   }
+  if (mifflin !== null) return { kcal: mifflin, method: 'mifflin_st_jeor', explanation: mifflinText };
   return null;
+}
+
+const LEVEL_ORDER: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
+
+export interface ActivitySuggestion {
+  /** Nível mínimo coerente com o treino informado. */
+  suggested: ActivityLevel;
+  /** O nível marcado está abaixo do que o treino indica. */
+  incoherent: boolean;
+  reason: string;
+}
+
+/**
+ * Nível de atividade coerente com o treino de força informado:
+ * 1–2 treinos/semana → pelo menos "levemente ativo"; 3–4 (≥ 30 min) →
+ * "moderadamente ativo"; 5 ou mais (≥ 45 min) → "muito ativo".
+ * Nunca rebaixa o nível marcado (trabalho físico, outras atividades).
+ */
+export function suggestActivityLevel(current: ActivityLevel | null, sessionsPerWeek: number | null, minutesPerSession: number | null): ActivitySuggestion | null {
+  if (!sessionsPerWeek || sessionsPerWeek <= 0) return null;
+  const min = minutesPerSession ?? 45;
+  const fromTraining: ActivityLevel = sessionsPerWeek >= 5 && min >= 45 ? 'active' : sessionsPerWeek >= 3 && min >= 30 ? 'moderate' : 'light';
+  const cur = current ?? 'sedentary';
+  const suggested = LEVEL_ORDER.indexOf(fromTraining) > LEVEL_ORDER.indexOf(cur) ? fromTraining : cur;
+  const incoherent = suggested !== cur;
+  const treino = `${sessionsPerWeek} treino(s) de força por semana${minutesPerSession ? ` de ${minutesPerSession} min` : ''}`;
+  return {
+    suggested,
+    incoherent,
+    reason: incoherent
+      ? `Com ${treino}, o nível "${ACTIVITY_FACTORS[cur].label}" subestima o seu gasto. Sugerido: "${ACTIVITY_FACTORS[suggested].label}".`
+      : `${treino[0].toUpperCase()}${treino.slice(1)}: coerente com "${ACTIVITY_FACTORS[cur].label}".`,
+  };
 }
 
 export function estimateTdee(bmrKcal: number, level: ActivityLevel): { kcal: number; explanation: string } {

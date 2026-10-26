@@ -95,6 +95,14 @@ select pg_temp.assert(
   (select changed_columns = array['name'] and old_row is null from public.audit_log where table_name = 'profiles' limit 1),
   'alteração de perfil registrada sem copiar dados sensíveis');
 update public.profiles set objectives = array['fat_loss', 'muscle_gain'], objective = 'recomposition';
+update public.profiles set strength_sessions_per_week = 4, strength_session_min = 60, protein_g_per_kg = 2.0, protein_basis = 'fat_free_mass';
+do $$
+begin
+  update public.profiles set protein_g_per_kg = 4.0;
+  raise exception 'FALHOU: fator de proteína absurdo aceito';
+exception when check_violation then
+  raise notice 'ok - fator de proteína limitado a 1,0–2,5 g/kg';
+end $$;
 do $$
 begin
   update public.profiles set objectives = array['dieta_magica'];

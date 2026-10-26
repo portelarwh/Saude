@@ -10,6 +10,7 @@ import { useGoals, useProfile } from '../state/hooks';
 import { Button, Card, ChipSelect, DateField, Divider, Field, HeightField, ListItem, TimeField, MultiChipSelect, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
 import { ACTIVITY_OPTIONS, HEALTH_FLAGS } from '../ui/labels';
 import { RestrictionsSelect } from '../ui/RestrictionsSelect';
+import { TrainingFields } from '../ui/TrainingFields';
 import { ObjectivesSelect } from '../ui/ObjectivesSelect';
 import { TimelineNotice } from '../ui/TimelineNotice';
 
@@ -92,7 +93,7 @@ function ProfileForm({ initial }: { initial: Profile }) {
         <ObjectivesSelect value={profileObjectives(p)} onChange={(list) => setP({ ...p, objectives: list, objective: combineObjectives(list) })} />
         <ChipSelect label="Atividade" options={ACTIVITY_OPTIONS} value={p.activity_level} onChange={(v) => set('activity_level', v)} />
         {p.activity_level ? <T variant="tiny">{ACTIVITY_FACTORS[p.activity_level].description}</T> : null}
-        <Toggle label="Faço treino de força" value={Boolean(p.does_resistance_training)} onChange={(v) => set('does_resistance_training', v)} />
+        <TrainingFields p={p} onChange={(patch) => setP({ ...p, ...patch })} />
         <Field label="Rotina de trabalho" value={p.work_routine ?? ''} onChangeText={(t) => set('work_routine', t)} />
         <Row>
           <TimeField label="Acordo às" value={p.wake_time ?? ''} onChangeText={(t) => set('wake_time', t)} style={{ flex: 1 }} />

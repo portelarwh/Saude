@@ -60,6 +60,8 @@ export function buildAiContext(i: ContextInput): Record<string, unknown> {
           objetivos_marcados: p.objectives ?? (p.objective ? [p.objective] : []),
           nivel_atividade: p.activity_level,
           treino_de_forca: p.does_resistance_training,
+          treinos_de_forca_por_semana: p.strength_sessions_per_week ?? null,
+          padrao_proteina_g_kg: p.protein_g_per_kg ?? null,
           restricoes: p.food_restrictions,
           alergias: p.allergies,
           intolerancias: p.intolerances,

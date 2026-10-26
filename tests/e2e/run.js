@@ -74,7 +74,12 @@ async function flow() {
     await click('Ganho de massa muscular');
     if (!/seguem: Recomposição corporal/.test(await page.innerText('body'))) throw new Error('combinação de objetivos ausente');
     await click('Levemente ativo');
-    await page.getByRole('switch').first().click();
+    await fill('Treinos de força por semana', '4');
+    await fill('Duração (min)', '60');
+    await page.waitForTimeout(300);
+    if (!/Nível de atividade abaixo do seu treino/.test(await page.innerText('body'))) throw new Error('sem aviso de atividade x treino');
+    await click('Usar "Moderadamente ativo"');
+    if (/Nível de atividade abaixo do seu treino/.test(await page.innerText('body'))) throw new Error('sugestão de atividade não aplicada');
     const soon = new Date(Date.now() + 21 * 864e5);
     const pad = (n) => String(n).padStart(2, '0');
     await page.getByLabel('Prazo desejado (opcional)', { exact: true }).pressSequentially(`${pad(soon.getDate())}${pad(soon.getMonth() + 1)}${soon.getFullYear()}`);
@@ -311,6 +316,18 @@ async function flow() {
     const blocking = installabilityErrors.filter((e) => e.errorId !== 'in-incognito');
     if (blocking.length) throw new Error('não instalável: ' + JSON.stringify(blocking));
     if (manifest.id !== '/') throw new Error('id do app deve ser o caminho do app, recebido ' + manifest.id);
+  });
+  await step('padrão de proteína em Metas', async () => {
+    await page.goto(BASE + '/metas', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    const before = await page.innerText('body');
+    if (!/Padrão de proteína/.test(before) || !/Padrão do app para o seu objetivo: \d,\d g\/kg/.test(before)) throw new Error('card de padrão de proteína: ' + before.slice(0, 400).replace(/\n/g, ' '));
+    await click('2,2 g/kg');
+    await page.waitForTimeout(1200);
+    const after = await page.innerText('body');
+    if (!/Padrão escolhido por você: 2,2 g\/kg/.test(after)) throw new Error('padrão de proteína não aplicado');
+    await click('Padrão do app');
+    await page.waitForTimeout(800);
   });
   await step('versão no topo e "Verificar agora"', async () => {
     const version = fs.readFileSync(path.join(ROOT, 'src/version.ts'), 'utf8').match(/APP_VERSION = '([^']+)'/)[1];

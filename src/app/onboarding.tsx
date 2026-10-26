@@ -19,6 +19,7 @@ import { Button, Card, Loading, ChipSelect, DateField, Field, HeightField, Multi
 import { num } from '../ui/format';
 import { ACTIVITY_OPTIONS, HEALTH_FLAGS } from '../ui/labels';
 import { RestrictionsSelect } from '../ui/RestrictionsSelect';
+import { TrainingFields } from '../ui/TrainingFields';
 import { ObjectivesSelect } from '../ui/ObjectivesSelect';
 import { TimelineNotice } from '../ui/TimelineNotice';
 import { spacing, useTheme } from '../ui/theme';
@@ -245,7 +246,7 @@ function OnboardingForm({ saved: initial }: { saved: Profile | null }) {
             <ObjectivesSelect value={profileObjectives(p)} onChange={(list) => setP((cur) => ({ ...cur, objectives: list, objective: combineObjectives(list) }))} />
             <ChipSelect label="Nível de atividade física" options={ACTIVITY_OPTIONS} value={p.activity_level} onChange={(v) => set('activity_level', v)} />
             {p.activity_level ? <T variant="small">{ACTIVITY_FACTORS[p.activity_level].description}</T> : null}
-            <Toggle label="Faço treino de força (musculação ou similar)" value={Boolean(p.does_resistance_training)} onChange={(v) => set('does_resistance_training', v)} />
+            <TrainingFields p={p} onChange={(patch) => setP((cur) => ({ ...cur, ...patch }))} />
             <Field label="Rotina de trabalho (opcional)" value={p.work_routine ?? ''} onChangeText={(t) => set('work_routine', t)} placeholder="Ex.: escritório, 8h às 17h; turnos; home office" />
             <DateField label="Prazo desejado (opcional)" value={targetDateText} onChangeText={setTargetDateText} />
             <TimelineNotice timeline={timeline} onUseSuggested={setTargetDateText} />

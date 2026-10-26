@@ -5,10 +5,10 @@
  * explicação legível. Metas prescritas por profissional têm prioridade e nunca
  * são substituídas por recálculos automáticos.
  */
-import { ACTIVITY_FACTORS, bmi, estimateBmr, estimateTdee, weightAtBmi } from './energy';
+import { ACTIVITY_FACTORS, bmi, estimateBmr, estimateTdee, suggestActivityLevel, weightAtBmi, type ActivitySuggestion } from './energy';
 import { addDays, ageOn, daysBetween, formatDateBR, parseISODate, toISODate } from './dates';
 import { round } from './nutrients';
-import type { GoalKey, GoalOrigin, GoalTarget, GoalTargets, HealthFlag, ISODate, Objective, Profile } from './types';
+import type { GoalKey, GoalOrigin, GoalTarget, GoalTargets, HealthFlag, ISODate, Objective, Profile, ProteinBasis } from './types';
 
 export const GOAL_KEYS: GoalKey[] = ['energy_kcal', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'water_ml'];
 
@@ -48,7 +48,8 @@ export interface GoalInput {
     | 'hot_climate'
     | 'water_ml_per_kg'
     | 'target_date'
-  >;
+  > &
+    Partial<Pick<Profile, 'food_restrictions' | 'strength_sessions_per_week' | 'strength_session_min' | 'protein_g_per_kg' | 'protein_basis'>>;
   /** Dados da bioimpedância mais recente, se houver. */
   latestFatFreeMassKg?: number | null;
   today?: Date;
@@ -59,6 +60,8 @@ export interface GoalCalculation {
   bmr: { kcal: number; method: string; explanation: string } | null;
   tdee: { kcal: number; explanation: string } | null;
   referenceWeight: { kg: number; explanation: string } | null;
+  /** Nível de atividade coerente com o treino informado (null sem treinos informados). */
+  activity: ActivitySuggestion | null;
   missingData: string[];
 }
 
@@ -107,6 +110,40 @@ export function profileObjectives(p: Pick<Profile, 'objective'> & { objectives?:
 export function normalizeHeightCm(value: number | null): number | null {
   if (value === null || !Number.isFinite(value) || value <= 0) return null;
   return value < 3 ? round(value * 100, 1) : value;
+}
+
+/** Carboidrato do low carb moderado (g/dia). */
+export const LOW_CARB_RANGE: readonly [number, number] = [100, 130];
+
+/** Fatores de proteína oferecidos para escolha (g/kg). */
+export const PROTEIN_FACTOR_OPTIONS = [1.2, 1.6, 1.8, 2.0, 2.2] as const;
+
+const ptNum = (n: number) => String(round(n, 1)).replace('.', ',');
+/** Fator de proteína sempre com uma casa: 2 → "2,0". */
+export const formatFactor = (n: number) => n.toFixed(1).replace('.', ',');
+
+/** Aceita só fatores plausíveis (1,0–2,5 g/kg); fora disso volta ao padrão do app. */
+export function validProteinFactor(v: number | null | undefined): number | null {
+  return typeof v === 'number' && Number.isFinite(v) && v >= 1 && v <= 2.5 ? v : null;
+}
+
+/** Peso sobre o qual a proteína é calculada. */
+export function proteinBase(
+  basis: ProteinBasis,
+  ref: { kg: number; explanation: string },
+  currentKg: number,
+  heightCm: number | null,
+  fatFreeMassKg: number | null,
+): { kg: number; explanation: string; warnings: string[] } {
+  if (basis === 'fat_free_mass') {
+    if (fatFreeMassKg && fatFreeMassKg > 0) return { kg: fatFreeMassKg, explanation: `Base: massa livre de gordura da bioimpedância (${ptNum(fatFreeMassKg)} kg).`, warnings: [] };
+    return { ...ref, warnings: ['Base "massa livre de gordura" escolhida, mas não há bioimpedância com esse valor: usamos o peso de referência.'] };
+  }
+  if (basis === 'current') {
+    if (!heightCm || bmi(currentKg, heightCm) < 30) return { kg: currentKg, explanation: `Base: peso atual (${ptNum(currentKg)} kg).`, warnings: [] };
+    return { ...ref, warnings: ['Com IMC ≥ 30 o peso atual superestima a necessidade de proteína: usamos o peso de referência.'] };
+  }
+  return { ...ref, warnings: [] };
 }
 
 export function proteinFactor(objective: Objective, resistanceTraining: boolean): { factor: number; range: [number, number] } {
@@ -235,7 +272,10 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
   });
   const tdeeResult = bmrResult && p.activity_level ? estimateTdee(bmrResult.kcal, p.activity_level) : null;
   const objective: Objective = p.objective ?? 'maintenance';
-  const rt = Boolean(p.does_resistance_training);
+  const sessions = p.strength_sessions_per_week ?? null;
+  const rt = sessions !== null ? sessions > 0 : Boolean(p.does_resistance_training);
+  const activity = suggestActivityLevel(p.activity_level, sessions, p.strength_session_min ?? null);
+  const lowCarb = (p.food_restrictions ?? []).some((r) => /low carb/i.test(r));
 
   // Energia
   let energy: GoalTarget;
@@ -247,7 +287,8 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
     });
   } else {
     const c = calorieTarget(tdeeResult.kcal, bmrResult.kcal, objective, p.sex);
-    energy = target(c.kcal, `${bmrResult.explanation} ${tdeeResult.explanation} ${c.explanation}`, { warnings: c.warnings });
+    const warnings = [...c.warnings, ...(activity?.incoherent ? [`${activity.reason} Ajuste em Perfil › Atividade.`] : [])];
+    energy = target(c.kcal, `${bmrResult.explanation} ${tdeeResult.explanation} ${c.explanation}`, { warnings: warnings.length ? warnings : undefined });
   }
 
   // Peso de referência
@@ -263,16 +304,41 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
     });
   } else {
     const pf = proteinFactor(objective, rt);
-    const grams = Math.round(ref.kg * pf.factor);
-    protein = target(grams, `${ref.explanation} ${pf.factor} g/kg × ${ref.kg} kg = ${grams} g/dia (faixa usual para o objetivo: ${pf.range[0]}–${pf.range[1]} g/kg${rt ? ', com treino de força' : ''}).`, {
-      range: [Math.round(ref.kg * pf.range[0]), Math.round(ref.kg * pf.range[1])],
-    });
+    const base = proteinBase(p.protein_basis ?? 'reference', ref, p.current_weight_kg!, p.height_cm, input.latestFatFreeMassKg ?? null);
+    const custom = validProteinFactor(p.protein_g_per_kg);
+    const factor = custom ?? pf.factor;
+    const grams = Math.round(base.kg * factor);
+    const warnings = [...base.warnings];
+    if (custom !== null && (custom < pf.range[0] || custom > pf.range[1])) {
+      warnings.push(`${formatFactor(custom)} g/kg está fora da faixa usual para o objetivo (${formatFactor(pf.range[0])}–${formatFactor(pf.range[1])} g/kg${rt ? ', com treino de força' : ''}).`);
+    }
+    const origin = custom !== null ? `Padrão escolhido por você: ${formatFactor(custom)} g/kg.` : `Padrão do app para o objetivo: ${formatFactor(pf.factor)} g/kg.`;
+    protein = target(
+      grams,
+      `${base.explanation} ${origin} ${formatFactor(factor)} g/kg × ${ptNum(base.kg)} kg = ${grams} g/dia (faixa usual para o objetivo: ${formatFactor(pf.range[0])}–${formatFactor(pf.range[1])} g/kg${rt ? ', com treino de força' : ''}).`,
+      { range: [Math.round(base.kg * pf.range[0]), Math.round(base.kg * pf.range[1])], warnings: warnings.length ? warnings : undefined },
+    );
   }
 
   // Gorduras e carboidratos dependem da energia
   let fat: GoalTarget;
   let carbs: GoalTarget;
-  if (energy.value && ref) {
+  if (energy.value && ref && lowCarb) {
+    // Low carb moderado: 100–130 g/dia (~25% das calorias); a gordura completa as calorias
+    const proteinKcal = (protein.value ?? Math.round(ref.kg * 1.2)) * 4;
+    const carbsG = Math.round(Math.min(LOW_CARB_RANGE[1], Math.max(LOW_CARB_RANGE[0], (energy.value * 0.25) / 4)));
+    const fatMin = ref.kg * 0.6;
+    const fatG = Math.round(Math.max(fatMin, (energy.value - proteinKcal - carbsG * 4) / 9));
+    const carbWarnings = flags.has('diabetes') ? ['Com diabetes, reduzir carboidratos pode exigir ajuste de medicação: combine com seu médico.'] : [];
+    carbs = target(carbsG, `Low carb moderado (marcado em Alimentação): ~25% das calorias, dentro de ${LOW_CARB_RANGE[0]}–${LOW_CARB_RANGE[1]} g/dia = ${carbsG} g. Abaixo de 50 g/dia (cetogênica) só com acompanhamento.`, {
+      range: [...LOW_CARB_RANGE],
+      warnings: carbWarnings.length ? carbWarnings : undefined,
+    });
+    const fatPct = Math.round(((fatG * 9) / energy.value) * 100);
+    fat = target(fatG, `Calorias restantes após proteínas e carboidratos: (${energy.value} − ${proteinKcal} − ${carbsG * 4}) ÷ 9 kcal/g = ${fatG} g (~${fatPct}% das calorias), mínimo de 0,6 g/kg de referência. Prefira azeite, castanhas, ovos e peixes.`, {
+      range: [Math.round((energy.value * 0.3) / 9), Math.round((energy.value * 0.45) / 9)],
+    });
+  } else if (energy.value && ref) {
     const fatByPct = (energy.value * 0.28) / 9;
     const fatMin = ref.kg * 0.6;
     const fatG = Math.round(Math.max(fatByPct, fatMin));
@@ -319,6 +385,7 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
     bmr: bmrResult,
     tdee: tdeeResult,
     referenceWeight: ref,
+    activity,
     missingData,
   };
 }

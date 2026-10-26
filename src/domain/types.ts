@@ -16,6 +16,8 @@ export interface BaseRow {
 
 export type Sex = 'female' | 'male';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+/** reference = peso atual ou equivalente a IMC 25 se IMC ≥ 30; fat_free_mass = massa livre de gordura medida; current = peso atual (só com IMC < 30). */
+export type ProteinBasis = 'reference' | 'fat_free_mass' | 'current';
 export type Objective = 'fat_loss' | 'maintenance' | 'recomposition' | 'muscle_gain';
 
 /** Sinalizadores de saúde que exigem cautela automática nas metas. */
@@ -43,6 +45,13 @@ export interface Profile extends BaseRow {
   activity_level: ActivityLevel | null;
   work_routine: string | null;
   does_resistance_training: boolean | null;
+  /** Treinos de força por semana e duração média (min); definem o treino e sugerem o nível de atividade. */
+  strength_sessions_per_week?: number | null;
+  strength_session_min?: number | null;
+  /** Padrão de proteína escolhido pelo usuário (g por kg); null = padrão do app para o objetivo. */
+  protein_g_per_kg?: number | null;
+  /** Peso usado no cálculo da proteína; null = peso de referência. */
+  protein_basis?: ProteinBasis | null;
   /** Objetivo usado no cálculo das metas (derivado de `objectives`). */
   objective: Objective | null;
   /** Objetivos marcados pelo usuário (pode haver mais de um). */
