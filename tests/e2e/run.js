@@ -478,6 +478,61 @@ async function flow() {
     if (/Instale o Meu Equilíbrio/.test(await p.innerText('body'))) throw new Error('"agora não" não foi respeitado');
     await mobile.close();
   });
+  await step('receita com quantidade diferente da porção (leite 200 ml → 300 ml)', async () => {
+    await page.goto(BASE + '/alimento/novo', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    await fill('Nome do produto', 'Leite Teste');
+    await click('mililitros (ml)');
+    await fill('Porção', '200');
+    await fill('Medida caseira', '1 copo');
+    await fill('Valor energético', '120');
+    await fill('Proteínas', '6');
+    await click('Salvar alimento');
+    await page.waitForTimeout(800);
+    await page.goto(BASE + '/receita', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    await fill('Nome da receita', 'Vitamina teste');
+    await fill('Adicionar ingrediente', 'Leite Teste');
+    await page.waitForTimeout(500);
+    await page.getByText('Leite Teste', { exact: true }).last().click();
+    await page.waitForTimeout(400);
+    // no celular o campo não pode ficar coberto pelos botões: quantidade em linha própria
+    const field = page.getByLabel('Quantidade', { exact: true }).first();
+    await field.fill('');
+    await field.pressSequentially('300');
+    await page.waitForTimeout(300);
+    let body = await page.innerText('body');
+    if ((await field.inputValue()) !== '300' || !/180 kcal/.test(body)) throw new Error('300 ml não aplicado: ' + (body.match(/Receita inteira[^\n]*/) || [''])[0]);
+    // em porções: 1,5 copo = 300 ml; 2 copos = 400 ml
+    const portions = page.getByLabel('Em porções (1 copo = 200 ml)', { exact: true });
+    if ((await portions.inputValue()) !== '1,5') throw new Error('porções não sincronizadas: ' + (await portions.inputValue()));
+    await portions.fill('');
+    await portions.pressSequentially('2');
+    await page.waitForTimeout(300);
+    body = await page.innerText('body');
+    if ((await field.inputValue()) !== '400' || !/240 kcal/.test(body)) throw new Error('2 copos ≠ 400 ml');
+    await shot('19-receita');
+  });
+  await step('editar refeição salva e meus alimentos', async () => {
+    await page.goto(BASE + '/refeicoes', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    await click('Editar');
+    await page.waitForTimeout(800);
+    const q = page.getByLabel('Quantidade', { exact: true }).first();
+    await q.fill('');
+    await q.pressSequentially('123');
+    await click('Salvar alterações');
+    await page.waitForTimeout(800);
+    if (!/— 123 g/.test(await page.innerText('body'))) throw new Error('quantidade editada não salva na refeição');
+    await page.goto(BASE + '/meus-alimentos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    if (!/Leite Teste/.test(await page.innerText('body'))) throw new Error('meus alimentos não lista o cadastro');
+    await fill('Buscar nos meus alimentos', 'leite');
+    await page.waitForTimeout(400);
+    await click('Editar');
+    await page.waitForTimeout(800);
+    if (!/Salvar alterações/.test(await page.innerText('body')) || (await page.getByLabel('Nome do produto', { exact: true }).inputValue()) !== 'Leite Teste') throw new Error('edição do alimento não abriu');
+  });
   await step('telas secundárias abrem', async () => {
     for (const r of ['progresso', 'colar', 'refeicoes', 'agua', 'suplementos', 'receitas', 'receita', 'metas', 'perfil', 'notificacoes', 'privacidade', 'relatorios', 'dieta', 'atividade', 'fontes', 'atividades', 'alimento/novo', 'adicionar']) {
       await page.goto(BASE + '/' + r, { waitUntil: 'networkidle' });

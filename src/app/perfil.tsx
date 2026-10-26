@@ -55,6 +55,7 @@ function ProfileForm({ initial }: { initial: Profile }) {
         <Divider />
         <ListItem icon="shield-checkmark-outline" title="Privacidade e dados" subtitle="Consentimentos, exportar, excluir" onPress={() => router.push('/privacidade')} />
         <Divider />
+        <ListItem icon="nutrition-outline" title="Meus alimentos" subtitle="Editar ou excluir alimentos que você cadastrou" onPress={() => router.push('/meus-alimentos')} />
         <ListItem icon="server-outline" title="Base de alimentos" subtitle="Exportar meus cadastros para a base do sistema ou importar" onPress={() => router.push('/base-alimentos')} />
         <ListItem icon="library-outline" title="Fontes de dados e licenças" onPress={() => router.push('/fontes')} />
       </Card>

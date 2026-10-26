@@ -19,7 +19,7 @@ import { useAllFoods } from '../../state/hooks';
 import { SUPPLEMENT_LABELS } from '../../ui/labels';
 import { TagEditor } from '../../ui/TagEditor';
 import { View } from 'react-native';
-import { Button, Card, Chip, ChipSelect, Field, Notice, NumberField, Row, Screen, T, Toggle } from '../../ui/components';
+import { Button, Card, Chip, ChipSelect, Field, Loading, Notice, NumberField, Row, Screen, T, Toggle } from '../../ui/components';
 
 
 const FIELDS: { key: keyof Nutrients; label: string; unit: string }[] = [
@@ -39,13 +39,22 @@ type Draft = NormalizedLabel & { filePath: string | null };
 
 const NO_MACROS: Nutrients = { energy_kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
 
+type Params = { draft?: string; edit?: string; name?: string; barcode?: string; date?: string; meal?: string; supplement?: string };
+
+/** Ao editar, espera os alimentos carregarem para o formulário já abrir preenchido. */
 export default function NewFood() {
-  const params = useLocalSearchParams<{ draft?: string; edit?: string; name?: string; barcode?: string; date?: string; meal?: string; supplement?: string }>();
+  const params = useLocalSearchParams<Params>();
+  const { userFoods, loading } = useAllFoods();
+  if (params.edit && loading) return <Loading />;
+  if (params.edit && !userFoods.some((f) => f.id === params.edit)) return <Screen><Notice kind="error">Alimento não encontrado.</Notice></Screen>;
+  return <FoodForm key={params.edit ?? 'novo'} params={params} editing={params.edit ? userFoods.find((f) => f.id === params.edit) ?? null : null} />;
+}
+
+function FoodForm({ params, editing }: { params: Params; editing: Food | null }) {
   const router = useRouter();
   const store = useStore();
   const { userFoods } = useAllFoods();
   const draft = useMemo(() => takeDraft<Draft>(params.draft), [params.draft]);
-  const editing = params.edit ? userFoods.find((f) => f.id === params.edit) ?? null : null;
   const base = draft?.food ?? editing;
 
   const [name, setName] = useState(base?.name ?? params.name ?? '');

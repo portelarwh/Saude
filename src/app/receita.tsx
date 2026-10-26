@@ -1,10 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
+import { View } from 'react-native';
 import { searchFoods } from '../domain/foodSearch';
 import { calculateRecipe, ingredientFromFood } from '../domain/recipes';
 import type { Food, Recipe, RecipeIngredient } from '../domain/types';
 import { useStore } from '../state/AppProvider';
 import { useAllFoods, useCollection } from '../state/hooks';
+import { AmountField } from '../ui/AmountField';
 import { Button, Card, Field, ListItem, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
 import { confirmAction } from '../ui/confirm';
 import { num } from '../ui/format';
@@ -63,11 +65,20 @@ function Editor({ existing }: { existing?: Recipe }) {
       <Card>
         <T variant="h3">Ingredientes</T>
         {ingredients.map((ing, i) => (
-          <Row key={i} style={{ alignItems: 'flex-end' }}>
-            <NumberField label={ing.food_name} suffix={ing.unit} value={ing.amount} onChange={(v) => v && setIngredients((cur) => cur.map((x, j) => (j === i ? { ...x, amount: v } : x)))} style={{ flex: 1 }} />
-            <Button small variant="ghost" title="Trocar" onPress={() => setReplacing(i)} />
-            <Button small variant="ghost" title="Remover" onPress={() => setIngredients((cur) => cur.filter((_, j) => j !== i))} />
-          </Row>
+          <View key={i} style={{ gap: 4, paddingVertical: 4 }}>
+            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <T variant="label" style={{ flex: 1 }}>{ing.food_name}</T>
+              <Button small variant="ghost" icon="swap-horizontal" title="Trocar" onPress={() => setReplacing(i)} />
+              <Button small variant="ghost" icon="trash-outline" title="Remover" onPress={() => setIngredients((cur) => cur.filter((_, j) => j !== i))} />
+            </Row>
+            <AmountField
+              label="Quantidade"
+              unit={ing.unit}
+              value={ing.amount}
+              measure={foods.find((f) => f.id === ing.food_id)?.household_measures[0] ?? null}
+              onChange={(v) => setIngredients((cur) => cur.map((x, j) => (j === i ? { ...x, amount: v } : x)))}
+            />
+          </View>
         ))}
         {replacing !== null ? <Notice kind="info">{`Escolha o substituto de "${ingredients[replacing]?.food_name}" (mesma quantidade).`}</Notice> : null}
         <Field label={replacing !== null ? 'Substituir por' : 'Adicionar ingrediente'} value={q} onChangeText={setQ} placeholder="Ex.: peito de frango cozido" />

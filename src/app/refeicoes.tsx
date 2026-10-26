@@ -6,7 +6,7 @@ import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type MealType, type SavedMeal
 import { newId } from '../services/ids';
 import { useStore } from '../state/AppProvider';
 import { useCollection, useToday } from '../state/hooks';
-import { Badge, Button, Card, ChipSelect, EmptyState, Field, Notice, Row, Screen, Sheet, T } from '../ui/components';
+import { Badge, Button, Card, ChipSelect, EmptyState, Notice, Row, Screen, Sheet, T } from '../ui/components';
 import { confirmAction } from '../ui/confirm';
 import { num } from '../ui/format';
 import { currentMeal } from '../ui/QuickAdd';
@@ -20,7 +20,6 @@ export default function SavedMeals() {
   const [logging, setLogging] = useState<SavedMeal | null>(null);
   const [meal, setMeal] = useState<MealType>(params.meal ?? currentMeal());
   const [msg, setMsg] = useState<string | null>(null);
-  const [renaming, setRenaming] = useState<{ meal: SavedMeal; name: string } | null>(null);
   const sorted = [...list.data].sort((a, b) => Number(b.favorite) - Number(a.favorite));
 
   const log = async () => {
@@ -68,7 +67,7 @@ export default function SavedMeals() {
                   setMeal(params.meal ?? m.meal ?? currentMeal());
                 }}
               />
-              <Button small variant="secondary" icon="create-outline" title="Renomear" onPress={() => setRenaming({ meal: m, name: m.name })} />
+              <Button small variant="secondary" icon="create-outline" title="Editar" onPress={() => router.push({ pathname: '/refeicao/[id]', params: { id: m.id } })} />
               <Button small variant="secondary" icon={m.favorite ? 'star' : 'star-outline'} title={m.favorite ? 'Desfavoritar' : 'Favoritar'} onPress={() => store.update<SavedMeal>('saved_meals', m.id, { favorite: !m.favorite })} />
               <Button small variant="danger" icon="trash-outline" title="Excluir" onPress={() => confirmAction('Excluir refeição salva', m.name, () => store.remove('saved_meals', m.id))} />
             </Row>
@@ -76,21 +75,6 @@ export default function SavedMeals() {
         );
       })}
 
-      <Sheet visible={Boolean(renaming)} onClose={() => setRenaming(null)} title="Renomear refeição">
-        {renaming ? (
-          <>
-            <Field label="Nome" value={renaming.name} onChangeText={(t) => setRenaming({ ...renaming, name: t })} />
-            <Button
-              title="Salvar"
-              disabled={!renaming.name.trim()}
-              onPress={async () => {
-                await store.update<SavedMeal>('saved_meals', renaming.meal.id, { name: renaming.name.trim() });
-                setRenaming(null);
-              }}
-            />
-          </>
-        ) : null}
-      </Sheet>
       <Sheet visible={Boolean(logging)} onClose={() => setLogging(null)} title="Registrar refeição">
         {logging ? (
           <>

@@ -3,7 +3,7 @@
  */
 import { buildEntry, buildSupplementEntry, type EntryOptions, type NewDiaryEntry } from './entries';
 import { scalePer100, sumNutrients, type NutrientTotals } from './nutrients';
-import type { DiaryEntry, Food, SavedMeal, SavedMealItem } from './types';
+import type { DiaryEntry, Food, HouseholdMeasure, SavedMeal, SavedMealItem } from './types';
 
 function itemFood(item: SavedMealItem): Food {
   return {
@@ -77,4 +77,48 @@ export function savedMealFromEntries(name: string, entries: DiaryEntry[]): Omit<
       compounds_per_serving: e.compounds && e.servings ? Object.fromEntries(Object.entries(e.compounds).map(([k, v]) => [k, v / e.servings!])) : null,
     })),
   };
+}
+
+/** Item de refeição salva a partir de um alimento da base (para editar refeições). */
+export function foodToSavedItem(food: Food, amount: number): SavedMealItem {
+  const measure = food.household_measures[0];
+  return {
+    food_name: food.name,
+    amount,
+    unit: food.base_unit,
+    measure: measure ? formatPortions(amount, measure) : null,
+    food_id: food.id,
+    per100: { ...food.per100 },
+    source: food.source,
+    verification: food.verification,
+    is_supplement: food.is_supplement,
+    serving_size: food.serving_size,
+    compounds_per_serving: food.compounds_per_serving,
+  };
+}
+
+/** Edição de itens: quantidade (g/ml) > 0; o resto do item (fonte, valores por 100) não muda. */
+export function setSavedItemAmount(items: SavedMealItem[], index: number, amount: number): SavedMealItem[] {
+  if (!(amount > 0)) throw new Error('A quantidade precisa ser maior que zero.');
+  return items.map((it, i) => (i === index ? { ...it, amount, measure: null } : it));
+}
+
+export function removeSavedItem(items: SavedMealItem[], index: number): SavedMealItem[] {
+  if (items.length <= 1) throw new Error('A refeição precisa de ao menos um item. Para apagá-la, use Excluir.');
+  return items.filter((_, i) => i !== index);
+}
+
+/** Porções de uma medida caseira ↔ quantidade: 1,5 × "1 copo (200 ml)" = 300 ml. */
+export function portionsToAmount(portions: number, measure: HouseholdMeasure): number {
+  return Math.round(portions * measure.amount * 10) / 10;
+}
+
+export function amountToPortions(amount: number, measure: HouseholdMeasure): number {
+  return Math.round((amount / measure.amount) * 100) / 100;
+}
+
+export function formatPortions(amount: number, measure: HouseholdMeasure): string {
+  const p = amountToPortions(amount, measure);
+  const unit = measure.label.replace(/^1\s+/, '');
+  return `${String(p).replace('.', ',')} × ${unit}`;
 }

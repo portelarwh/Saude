@@ -127,6 +127,7 @@ export default function Diary() {
 
         <Row wrap>
           <Button small variant="secondary" icon="bookmark-outline" title="Refeições salvas" onPress={() => router.push({ pathname: '/refeicoes', params: { date } })} />
+          <Button small variant="secondary" icon="nutrition-outline" title="Meus alimentos" onPress={() => router.push('/meus-alimentos')} />
           <Button small variant="secondary" icon="clipboard-outline" title="Colar do agente" onPress={() => router.push({ pathname: '/colar', params: { date } })} />
           <Button small variant="secondary" icon="book-outline" title="Receitas" onPress={() => router.push('/receitas')} />
           <Button small variant="secondary" icon="document-text-outline" title="Plano alimentar" onPress={() => router.push('/dieta')} />
