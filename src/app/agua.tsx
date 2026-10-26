@@ -7,6 +7,7 @@ import { useStore } from '../state/AppProvider';
 import { useCollection, useCountedBeverages, useGoals, useProfile, useToday } from '../state/hooks';
 import { BarChart, Ring } from '../ui/charts';
 import { Badge, Button, Card, ChipSelect, Field, ListItem, Notice, NumberField, Row, Screen, SectionHeader, Sheet, T, Toggle } from '../ui/components';
+import { HydrationGuide } from '../ui/GuideCards';
 import { confirmAction } from '../ui/confirm';
 import { ml, num } from '../ui/format';
 import { spacing, useTheme } from '../ui/theme';
@@ -66,6 +67,7 @@ export default function Water() {
       </Card>
 
       {nudge.message ? <Notice kind={nudge.behind ? 'info' : 'success'}>{nudge.message}</Notice> : null}
+      <HydrationGuide profile={profile} />
 
       <ChipSelect label="Bebida" options={(Object.keys(BEVERAGE_LABELS) as Beverage[]).map((b) => ({ value: b, label: BEVERAGE_LABELS[b] }))} value={beverage} onChange={setBeverage} />
       <Row wrap>

@@ -86,6 +86,7 @@ function Shell({ scheme, trackSeen = false }: { scheme: 'light' | 'dark'; trackS
         <Stack.Screen name="colar" options={{ title: 'Colar do agente de IA' }} />
         <Stack.Screen name="refeicoes" options={{ title: 'Refeições salvas' }} />
         <Stack.Screen name="base-alimentos" options={{ title: 'Base de alimentos' }} />
+        <Stack.Screen name="bem-estar" options={{ title: 'Como você está' }} />
       </Stack>
       <UpdateBanner trackSeen={trackSeen} />
       <InstallBanner />

@@ -298,6 +298,29 @@ async function flow() {
     await page.waitForTimeout(1000);
     await page.screenshot({ path: `${S}/e2e-22-diario.png`, fullPage: true });
   });
+  await step('como você está: retenção, creatina e água', async () => {
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    await click('Retenção de líquido');
+    await page.waitForTimeout(600);
+    await click('forte');
+    await click('Registrar');
+    await page.waitForTimeout(600);
+    let body = await page.innerText('body');
+    if (!/Registrado/.test(body) || !/Procure atendimento se tiver/.test(body) || !/uma perna só/.test(body) || !/O que ajuda/.test(body)) throw new Error('tela de retenção');
+    await shot('16-retencao');
+    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    if (!/Hoje: Retenção de líquido \(forte\)/.test(await page.innerText('body'))) throw new Error('registro do dia não aparece no Início');
+    await page.goto(BASE + '/suplementos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    await click('Ver a fase de saturação (opcional)');
+    body = await page.innerText('body');
+    if (!/Creatina: como usar/.test(body) || !/3–5 g por dia/.test(body) || !/20 g\/dia/.test(body)) throw new Error('guia de creatina');
+    await page.goto(BASE + '/agua', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    if (!/Dicas de hidratação/.test(await page.innerText('body'))) throw new Error('dicas de hidratação');
+  });
   await step('instalável como PWA', async () => {
     await page.goto(BASE + '/', { waitUntil: 'networkidle' });
     const manifestHref = await page.getAttribute('link[rel="manifest"]', 'href');

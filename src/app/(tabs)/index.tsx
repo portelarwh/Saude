@@ -12,10 +12,12 @@ import { trend } from '../../domain/bodyComposition';
 import { addDays, formatDateBR, parseISODate } from '../../domain/dates';
 import { loggingStreak, mealTargets, summarizeDay } from '../../domain/daySummary';
 import { hydrationNudge } from '../../domain/hydration';
-import { MEAL_LABELS, type ActivityLog, type BodyAssessment, type DiaryEntry, type MealType, type WaterLog, type WeightEntry } from '../../domain/types';
+import { creatineStatus } from '../../domain/creatine';
+import { MEAL_LABELS, type ActivityLog, type BodyAssessment, type DiaryEntry, type Food, type MealType, type WaterLog, type WeightEntry, type WellbeingLog } from '../../domain/types';
+import { INTENSITY_LABELS, WELLBEING_LABELS, type Intensity, type WellbeingKind } from '../../domain/wellbeing';
 import { useStore } from '../../state/AppProvider';
 import { useCollection, useCountedBeverages, useGoals, useProfile, useToday } from '../../state/hooks';
-import { IconButton, Notice, Row, Screen, T, type IconName } from '../../ui/components';
+import { Card, Chip, IconButton, Notice, Row, Screen, T, type IconName } from '../../ui/components';
 import { VersionBadge } from '../../ui/VersionBadge';
 import { CalorieHero, InsightCard, MacroCard, MealCard, SectionTitle, StatCard, WaterGlasses, WeekStrip } from '../../ui/dashboard';
 import { ml, num, signed } from '../../ui/format';
@@ -147,6 +149,9 @@ export default function Home() {
           <InsightCard icon="barbell-outline" title="Proteína" text={`Faltam aproximadamente ${Math.round(day.protein.remaining!)} g de proteína para sua meta de hoje. Uma fonte proteica na próxima refeição ajuda a chegar lá.`} />
         ) : null}
 
+        {isToday ? <WellbeingCard today={today} /> : null}
+        {isToday ? <CreatineCard today={today} /> : null}
+
         <SectionTitle title="Refeições" action={<Pressable onPress={() => router.push('/refeicoes')} hitSlop={8}><T variant="small" color={colors.primary}>Salvas</T></Pressable>} />
         {MEALS.map(({ meal, icon }) => {
           const list = entries.data.filter((e) => e.date === date && e.meal === meal);
@@ -190,5 +195,50 @@ export default function Home() {
         </Row>
       </Screen>
     </SafeAreaView>
+  );
+}
+
+/** "Como você está hoje?" com atalhos; mostra o registro do dia, se houver. */
+function WellbeingCard({ today }: { today: string }) {
+  const router = useRouter();
+  const { colors } = useTheme();
+  const logs = useCollection<WellbeingLog>('wellbeing_logs', { eq: { date: today } });
+  const last = [...logs.data].sort((a, b) => b.logged_at.localeCompare(a.logged_at))[0];
+  const go = (kind: WellbeingKind) => router.push({ pathname: '/bem-estar', params: { kind } });
+  return (
+    <Card>
+      <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <T variant="h3">Como você está hoje?</T>
+        {last ? <T variant="tiny" color={colors.muted}>{`Hoje: ${WELLBEING_LABELS[last.kind]}${last.intensity ? ` (${INTENSITY_LABELS[last.intensity as Intensity]})` : ''}`}</T> : null}
+      </Row>
+      <Row wrap>
+        <Chip label="Bem" icon="happy-outline" onPress={() => go('ok')} />
+        <Chip label="Barriga estufada" icon="ellipse-outline" onPress={() => go('bloating')} />
+        <Chip label="Retenção de líquido" icon="water-outline" onPress={() => go('fluid_retention')} />
+      </Row>
+    </Card>
+  );
+}
+
+/** Creatina: aparece para quem usa (registro nos últimos 30 dias ou suplemento de creatina cadastrado). */
+function CreatineCard({ today }: { today: string }) {
+  const router = useRouter();
+  const { colors } = useTheme();
+  const entries = useCollection<DiaryEntry>('diary_entries', { gte: ['date', addDays(today, -60)] });
+  const foods = useCollection<Food>('foods', { eq: { supplement_category: 'creatine' } });
+  const status = useMemo(() => creatineStatus(entries.data, today), [entries.data, today]);
+  const usedRecently = entries.data.some((e) => (e.compounds?.creatine_g ?? 0) > 0 && e.date >= addDays(today, -30));
+  if (!usedRecently && !foods.data.length) return null;
+  return (
+    <Card onPress={() => router.push('/suplementos')} accessibilityLabel="Creatina">
+      <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <T variant="h3">{status.takenToday ? `Creatina hoje ✓ (${num(status.gramsToday, 1)} g)` : 'Creatina de hoje'}</T>
+          <T variant="small">{status.takenToday ? (status.streak > 1 ? `${status.streak} dias seguidos. A constância é o que conta.` : 'Registrada.') : status.streak ? `Ainda não registrada hoje · ${status.streak} dia(s) seguidos até ontem.` : 'Ainda não registrada hoje. 3–5 g por dia, em qualquer horário.'}</T>
+          {status.recentStart ? <T variant="tiny" color={colors.muted}>Início recente: o peso pode subir 1–2 kg de água no músculo.</T> : null}
+        </View>
+        <T variant="small" color={colors.primary}>{status.takenToday ? 'Detalhes' : 'Registrar'}</T>
+      </Row>
+    </Card>
   );
 }

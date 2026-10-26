@@ -15,8 +15,9 @@ import { sumNutrients } from '../domain/nutrients';
 import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type Food, type MealType } from '../domain/types';
 import { newId } from '../services/ids';
 import { useStore } from '../state/AppProvider';
-import { useAllFoods, useCollection, useToday } from '../state/hooks';
+import { useAllFoods, useProfile, useCollection, useToday } from '../state/hooks';
 import { Badge, Button, Card, ChipSelect, EmptyState, Field, ListItem, Notice, NumberField, Row, Screen, SectionHeader, Sheet, T } from '../ui/components';
+import { CreatineGuide } from '../ui/GuideCards';
 import { num } from '../ui/format';
 import { SUPPLEMENT_LABELS } from '../ui/labels';
 import { currentMeal } from '../ui/QuickAdd';
@@ -24,6 +25,7 @@ import { currentMeal } from '../ui/QuickAdd';
 const BRANDS = ['Growth Supplements', 'DUX Nutrition', 'Integralmédica', 'Max Titanium', 'Soldiers Nutrition', 'Probiótica', 'Black Skull', 'Essential Nutrition'];
 
 export default function Supplements() {
+  const { profile } = useProfile();
   const router = useRouter();
   const store = useStore();
   const today = useToday();
@@ -69,6 +71,8 @@ export default function Supplements() {
         {supplementEntries.length ? <T variant="small">{`Proteína vinda de suplementos: ${num(supProtein, 1)} g (já somada ao total do dia).`}</T> : null}
         {Object.keys(compounds).length ? <T variant="small">{`Compostos hoje: ${formatCompounds(compounds)} (registrados à parte; não alteram calorias nem macros).`}</T> : null}
       </Card>
+
+      <CreatineGuide profile={profile} />
 
       <SectionHeader title="Meus suplementos" action={<Button small icon="add" title="Cadastrar" onPress={() => router.push({ pathname: '/alimento/novo', params: { supplement: '1' } })} />} />
       {supplements.length === 0 ? (

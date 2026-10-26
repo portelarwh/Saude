@@ -439,3 +439,14 @@ export interface SupplementLog {
   supplement_food_id: string;
   doses: number;
 }
+
+/** "Como você está hoje?" (ver src/domain/wellbeing.ts). */
+export interface WellbeingLog extends BaseRow {
+  date: ISODate;
+  logged_at: ISODateTime;
+  kind: 'ok' | 'bloating' | 'fluid_retention';
+  intensity: 1 | 2 | 3 | null;
+  note: string | null;
+  /** Possíveis contribuições apontadas no momento do registro. */
+  contributors: { id: string; title: string }[] | null;
+}

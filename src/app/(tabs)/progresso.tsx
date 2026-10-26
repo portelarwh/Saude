@@ -6,9 +6,11 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { movingAverage } from '../../domain/bodyComposition';
-import { addDays, parseISODate } from '../../domain/dates';
+import { creatineStatus } from '../../domain/creatine';
+import { addDays, formatDateBR, parseISODate } from '../../domain/dates';
 import { buildReport, dailyNutrientSeries, dailyWaterSeries, macroEnergySplit } from '../../domain/reports';
-import type { ActivityLog, BodyAssessment, DiaryEntry, WaterLog, WeightEntry } from '../../domain/types';
+import type { ActivityLog, BodyAssessment, DiaryEntry, WaterLog, WeightEntry, WellbeingLog } from '../../domain/types';
+import { WELLBEING_LABELS } from '../../domain/wellbeing';
 import { exportReportPDF } from '../../services/export';
 import { useCollection, useGoals, useProfile, useToday } from '../../state/hooks';
 import { Donut, GoalBarChart, LineChart } from '../../ui/charts';
@@ -28,6 +30,10 @@ export default function Progress() {
   const [period, setPeriod] = useState<7 | 30>(7);
   const from = addDays(today, -(period - 1));
   const entries = useCollection<DiaryEntry>('diary_entries', { gte: ['date', from] });
+  const creatineEntries = useCollection<DiaryEntry>('diary_entries', { gte: ['date', addDays(today, -90)] });
+  const creatine = useMemo(() => creatineStatus(creatineEntries.data, today), [creatineEntries.data, today]);
+  const wellbeing = useCollection<WellbeingLog>('wellbeing_logs', { gte: ['date', from], order: { field: 'date', ascending: true } });
+  const swelling = wellbeing.data.filter((w) => w.kind !== 'ok');
   const water = useCollection<WaterLog>('water_logs', { gte: ['date', from] });
   const activities = useCollection<ActivityLog>('activities', { gte: ['date', from] });
   const weights = useCollection<WeightEntry>('weight_entries', { order: { field: 'measured_at', ascending: true } });
@@ -101,6 +107,10 @@ export default function Progress() {
           <T variant="small">{smooth.length ? `${num(smooth[smooth.length - 1].value, 1)} kg${weightPts.length > 1 ? ` · ${signed(smooth[smooth.length - 1].value - weightPts[0].value, 1)} kg` : ''}` : 'sem pesagens'}</T>
         </Row>
         {weightPts.length ? <LineChart title="Peso" points={weightPts} smooth={weightPts.length >= 3 ? smooth : undefined} unit="kg" color={colors.chart.primary} /> : <T variant="small">Toque para registrar seu peso.</T>}
+        {creatine.startedOn && creatine.startedOn >= from ? <T variant="tiny">{`Início da creatina em ${formatDateBR(creatine.startedOn)}: nas primeiras semanas o peso pode subir 1–2 kg de água no músculo.`}</T> : null}
+        {swelling.length ? (
+          <T variant="tiny">{`Inchaço registrado: ${swelling.map((w) => `${formatDateBR(w.date).slice(0, 5)} (${WELLBEING_LABELS[w.kind].toLowerCase()})`).join(', ')}. Oscilações de peso nesses dias costumam ser água.`}</T>
+        ) : null}
       </Card>
       <Card>
         <ListItem icon="cloud-upload-outline" title="Importar exame de bioimpedância" subtitle="PDF ou foto do laudo, lido pela IA que você usa" onPress={() => router.push('/composicao/nova')} />

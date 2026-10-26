@@ -27,6 +27,7 @@ insert into public.foods (id, name, base_unit, source, verification, per100, tag
 select pg_temp.assert(exists (select 1 from public.search_foods('pós-treino') where id = 'user:whey'), 'busca encontra alimento pela tag do usuário');
 insert into storage.objects (bucket_id, name) values ('health-files', '11111111-1111-1111-1111-111111111111/exames/a.pdf');
 insert into public.saved_meals (name, items) values ('Café proteico', '[]');
+insert into public.wellbeing_logs (date, kind, intensity) values ('2026-10-26', 'fluid_retention', 2);
 select pg_temp.assert((select count(*) from public.water_logs) = 1, 'Ana vê o próprio registro de água');
 reset role;
 
@@ -37,6 +38,7 @@ select pg_temp.assert((select count(*) from public.water_logs) = 0, 'Bruno não 
 select pg_temp.assert((select count(*) from public.body_assessments) = 0, 'Bruno não lê exames de Ana');
 select pg_temp.assert((select count(*) from public.foods) = 0, 'Bruno não lê alimentos de Ana');
 select pg_temp.assert((select count(*) from public.saved_meals) = 0, 'Bruno não lê refeições salvas de Ana');
+select pg_temp.assert((select count(*) from public.wellbeing_logs) = 0, 'Bruno não lê registros de bem-estar de Ana');
 select pg_temp.assert((select count(*) from storage.objects) = 0, 'Bruno não lista arquivos de Ana');
 select pg_temp.assert((select count(*) from public.audit_log) = 0, 'Bruno não lê o histórico de Ana');
 
