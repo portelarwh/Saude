@@ -22,7 +22,7 @@ Os números abaixo foram obtidos rodando o motor atual com os dados dos testes A
 
 ## 2. O que adotar
 
-**Melhoram de fato (baixo risco):**
+**Melhoram de fato (baixo risco) — aplicados na 1.2.1:**
 1. Validação no motor: peso 30–350 kg, altura 100–250 cm, idade 18–100; fora disso, sem meta e com aviso claro.
 2. Menores de 18 anos: sem meta automática (como já é com gestação e transtorno alimentar).
 3. Carboidrato negativo/impossível: aviso explícito de configuração em vez de 0 silencioso.

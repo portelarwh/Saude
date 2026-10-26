@@ -112,6 +112,37 @@ export function normalizeHeightCm(value: number | null): number | null {
   return value < 3 ? round(value * 100, 1) : value;
 }
 
+/** Versão das fórmulas (registrada em cada versão de metas). */
+export const FORMULA_VERSION = 'nutri-2026.10';
+
+/** Referências citadas em cada meta. */
+export const GOAL_SOURCES: Record<GoalKey, string> = {
+  energy_kcal: 'Mifflin MD et al., Am J Clin Nutr 1990 (doi:10.1093/ajcn/51.2.241); Katch–McArdle quando há massa magra medida; fatores de atividade convencionais (1,2–1,9).',
+  protein_g: 'ISSN — Protein and exercise, 2017 (doi:10.1186/s12970-017-0177-8).',
+  carbs_g: 'Institute of Medicine — Dietary Reference Intakes (faixas de distribuição de macronutrientes); carboidrato = calorias restantes.',
+  fat_g: 'Institute of Medicine — Dietary Reference Intakes: 20–35% das calorias.',
+  fiber_g: 'Institute of Medicine — Dietary Reference Intakes: 14 g por 1.000 kcal.',
+  water_ml: 'Estimativa usual de 30–35 ml/kg; EFSA 2010 (doi:10.2903/j.efsa.2010.1459) para ingestão total de água.',
+};
+
+/** Limites plausíveis das entradas; fora deles o motor não calcula metas. */
+export const INPUT_LIMITS = { weightKg: [30, 350], heightCm: [100, 250], ageYears: [18, 110] } as const;
+
+/** Entradas inconsistentes (não calcula com elas) e perfis sem meta automática. */
+export function validateGoalInput(p: Pick<Profile, 'current_weight_kg' | 'height_cm'>, age: number | null): { errors: string[]; minor: boolean } {
+  const errors: string[] = [];
+  const w = p.current_weight_kg;
+  const h = p.height_cm;
+  if (w !== null && w !== undefined && !(Number.isFinite(w) && w >= INPUT_LIMITS.weightKg[0] && w <= INPUT_LIMITS.weightKg[1])) {
+    errors.push(`Peso fora do intervalo plausível (${INPUT_LIMITS.weightKg[0]}–${INPUT_LIMITS.weightKg[1]} kg). Confira em Perfil.`);
+  }
+  if (h !== null && h !== undefined && !(Number.isFinite(h) && h >= INPUT_LIMITS.heightCm[0] && h <= INPUT_LIMITS.heightCm[1])) {
+    errors.push(`Altura deve estar em centímetros, entre ${INPUT_LIMITS.heightCm[0]} e ${INPUT_LIMITS.heightCm[1]} cm. Confira em Perfil.`);
+  }
+  if (age !== null && !(age >= 0 && age <= INPUT_LIMITS.ageYears[1])) errors.push('Data de nascimento inválida. Confira em Perfil.');
+  return { errors, minor: age !== null && age >= 0 && age < INPUT_LIMITS.ageYears[0] };
+}
+
 /** Carboidrato do low carb moderado (g/dia). */
 export const LOW_CARB_RANGE: readonly [number, number] = [100, 130];
 
@@ -177,7 +208,7 @@ export function calorieTarget(
       explanation = `Déficit moderado de ${Math.round(deficit)} kcal (até 20% do gasto, máximo 750 kcal) para favorecer perda de gordura preservando massa magra.`;
       if (kcal < floor) {
         kcal = floor;
-        warnings.push('A meta foi limitada para não ficar abaixo da taxa metabólica basal estimada nem de um mínimo seguro. Déficits maiores exigem acompanhamento profissional.');
+        warnings.push('A meta foi limitada para não ficar abaixo do metabolismo de repouso estimado nem de um mínimo seguro. Déficits maiores exigem acompanhamento profissional.');
       }
       break;
     }
@@ -263,6 +294,20 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
   if (!p.sex) missingData.push('sexo biológico (usado nas equações)');
   if (!p.activity_level) missingData.push('nível de atividade');
 
+  const check = validateGoalInput(p, age);
+  if (check.errors.length || check.minor) {
+    const why = check.errors.length ? check.errors.join(' ') : 'Para menores de 18 anos, as metas devem ser definidas por nutricionista ou pediatra: as equações e faixas do app valem para adultos.';
+    const blocked = (key: GoalKey): GoalTarget => ({ ...target(null, why), source: GOAL_SOURCES[key] });
+    return {
+      targets: { energy_kcal: blocked('energy_kcal'), protein_g: blocked('protein_g'), carbs_g: blocked('carbs_g'), fat_g: blocked('fat_g'), fiber_g: blocked('fiber_g'), water_ml: blocked('water_ml') },
+      bmr: null,
+      tdee: null,
+      referenceWeight: null,
+      activity: null,
+      missingData,
+    };
+  }
+
   const bmrResult = estimateBmr({
     weight_kg: p.current_weight_kg,
     height_cm: p.height_cm,
@@ -346,9 +391,16 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
       range: [Math.round((energy.value * 0.2) / 9), Math.round((energy.value * 0.35) / 9)],
     });
     const proteinKcal = (protein.value ?? Math.round(ref.kg * 1.2)) * 4;
-    const carbsG = Math.max(0, Math.round((energy.value - proteinKcal - fatG * 9) / 4));
-    const warnings = carbsG < 100 ? ['Carboidratos abaixo de 100 g/dia: considere revisar a meta com um profissional.'] : undefined;
-    carbs = target(carbsG, `Calorias restantes após proteínas e gorduras: (${energy.value} − ${proteinKcal} − ${fatG * 9}) ÷ 4 kcal/g = ${carbsG} g.`, { warnings });
+    const carbsRaw = (energy.value - proteinKcal - fatG * 9) / 4;
+    if (carbsRaw < 0) {
+      carbs = target(null, `Configuração impossível: proteínas (${proteinKcal} kcal) e gorduras (${fatG * 9} kcal) já passam da meta de ${energy.value} kcal.`, {
+        warnings: ['Ajuste a meta de proteína ou de calorias em Metas para que sobre espaço para os carboidratos.'],
+      });
+    } else {
+      const carbsG = Math.round(carbsRaw);
+      const warnings = carbsG < 100 ? ['Carboidratos abaixo de 100 g/dia: considere revisar a meta com um profissional.'] : undefined;
+      carbs = target(carbsG, `Calorias restantes após proteínas e gorduras: (${energy.value} − ${proteinKcal} − ${fatG * 9}) ÷ 4 kcal/g = ${carbsG} g.`, { warnings });
+    }
   } else {
     fat = target(null, 'Depende da meta calórica.');
     carbs = target(null, 'Depende da meta calórica.');
@@ -380,8 +432,16 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
     });
   }
 
+  const withSource = (key: GoalKey, t: GoalTarget): GoalTarget => ({ ...t, source: GOAL_SOURCES[key] });
   return {
-    targets: { energy_kcal: energy, protein_g: protein, carbs_g: carbs, fat_g: fat, fiber_g: fiber, water_ml: water },
+    targets: {
+      energy_kcal: withSource('energy_kcal', energy),
+      protein_g: withSource('protein_g', protein),
+      carbs_g: withSource('carbs_g', carbs),
+      fat_g: withSource('fat_g', fat),
+      fiber_g: withSource('fiber_g', fiber),
+      water_ml: withSource('water_ml', water),
+    },
     bmr: bmrResult,
     tdee: tdeeResult,
     referenceWeight: ref,

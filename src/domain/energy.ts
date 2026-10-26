@@ -61,10 +61,10 @@ export function estimateBmr(input: BmrInput): BmrResult | null {
     return {
       kcal,
       method: 'katch_mcardle',
-      explanation: `Katch–McArdle, com a massa livre de gordura da sua bioimpedância: 370 + 21,6×${fat_free_mass_kg} kg = ${Math.round(kcal)} kcal/dia.${compare}`,
+      explanation: `Metabolismo de repouso estimado por Katch–McArdle, com a massa livre de gordura da sua bioimpedância: 370 + 21,6×${fat_free_mass_kg} kg = ${Math.round(kcal)} kcal/dia.${compare}`,
     };
   }
-  if (mifflin !== null) return { kcal: mifflin, method: 'mifflin_st_jeor', explanation: mifflinText };
+  if (mifflin !== null) return { kcal: mifflin, method: 'mifflin_st_jeor', explanation: `Metabolismo de repouso estimado — ${mifflinText}` };
   return null;
 }
 
@@ -80,14 +80,15 @@ export interface ActivitySuggestion {
 
 /**
  * Nível de atividade coerente com o treino de força informado:
- * 1–2 treinos/semana → pelo menos "levemente ativo"; 3–4 (≥ 30 min) →
- * "moderadamente ativo"; 5 ou mais (≥ 45 min) → "muito ativo".
- * Nunca rebaixa o nível marcado (trabalho físico, outras atividades).
+ * 1–2 treinos/semana → pelo menos "levemente ativo"; 3 ou mais (≥ 30 min) →
+ * "moderadamente ativo". Acima disso quem decide é o dia a dia (trabalho,
+ * deslocamentos): o treino sozinho não torna ninguém "muito ativo".
+ * Nunca rebaixa o nível marcado.
  */
 export function suggestActivityLevel(current: ActivityLevel | null, sessionsPerWeek: number | null, minutesPerSession: number | null): ActivitySuggestion | null {
   if (!sessionsPerWeek || sessionsPerWeek <= 0) return null;
   const min = minutesPerSession ?? 45;
-  const fromTraining: ActivityLevel = sessionsPerWeek >= 5 && min >= 45 ? 'active' : sessionsPerWeek >= 3 && min >= 30 ? 'moderate' : 'light';
+  const fromTraining: ActivityLevel = sessionsPerWeek >= 3 && min >= 30 ? 'moderate' : 'light';
   const cur = current ?? 'sedentary';
   const suggested = LEVEL_ORDER.indexOf(fromTraining) > LEVEL_ORDER.indexOf(cur) ? fromTraining : cur;
   const incoherent = suggested !== cur;
@@ -106,7 +107,7 @@ export function estimateTdee(bmrKcal: number, level: ActivityLevel): { kcal: num
   const kcal = bmrKcal * factor;
   return {
     kcal,
-    explanation: `Gasto energético total ≈ TMB ${Math.round(bmrKcal)} × ${factor} (${label}) = ${Math.round(kcal)} kcal/dia.`,
+    explanation: `Gasto energético total ≈ metabolismo de repouso ${Math.round(bmrKcal)} × ${factor} (${label}) = ${Math.round(kcal)} kcal/dia.`,
   };
 }
 

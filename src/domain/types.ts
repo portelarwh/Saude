@@ -103,6 +103,8 @@ export interface GoalTarget {
   /** Avisos de segurança, por exemplo "requer avaliação profissional". */
   warnings?: string[];
   professional_name?: string | null;
+  /** Referência científica do método. */
+  source?: string;
 }
 
 export type GoalTargets = Record<GoalKey, GoalTarget>;

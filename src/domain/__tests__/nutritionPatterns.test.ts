@@ -32,7 +32,7 @@ describe('C — treino de força coerente com o nível de atividade', () => {
     expect(suggestActivityLevel('sedentary', 0, null)).toBeNull();
     expect(suggestActivityLevel('sedentary', 2, 60)!.suggested).toBe('light');
     expect(suggestActivityLevel('sedentary', 4, 60)).toMatchObject({ suggested: 'moderate', incoherent: true });
-    expect(suggestActivityLevel('sedentary', 5, 60)!.suggested).toBe('active');
+    expect(suggestActivityLevel('sedentary', 6, 90)!.suggested).toBe('moderate'); // treino sozinho não vira "muito ativo"
     expect(suggestActivityLevel('active', 2, 40)).toMatchObject({ suggested: 'active', incoherent: false });
     expect(suggestActivityLevel('sedentary', 4, 20)!.suggested).toBe('light'); // treinos curtos
   });

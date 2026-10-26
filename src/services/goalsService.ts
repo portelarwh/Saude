@@ -1,5 +1,5 @@
 import type { DataStore } from '../data/store';
-import { calculateGoals, mergeSystemSuggestions, setTarget, type GoalCalculation } from '../domain/goals';
+import { calculateGoals, FORMULA_VERSION, mergeSystemSuggestions, setTarget, type GoalCalculation } from '../domain/goals';
 import type { BodyAssessment, GoalKey, GoalOrigin, GoalSet, GoalTargets, Profile } from '../domain/types';
 
 export async function latestFatFreeMass(store: DataStore): Promise<number | null> {
@@ -18,7 +18,7 @@ export async function recalculateGoals(store: DataStore, profile: Profile, curre
   const goalSet = await store.insert<GoalSet>('goal_sets', {
     valid_from: new Date().toISOString(),
     targets,
-    calc: { bmr: calc.bmr, tdee: calc.tdee, referenceWeight: calc.referenceWeight, missingData: calc.missingData },
+    calc: { bmr: calc.bmr, tdee: calc.tdee, referenceWeight: calc.referenceWeight, missingData: calc.missingData, formula_version: FORMULA_VERSION },
     note,
   });
   return { goalSet, calc };

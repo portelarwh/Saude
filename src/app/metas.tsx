@@ -48,17 +48,17 @@ export default function Goals() {
       </Screen>
     );
   }
-  const calc = goalSet.calc as { bmr?: { kcal: number; explanation: string } | null; tdee?: { kcal: number; explanation: string } | null; missingData?: string[] } | null;
+  const calc = goalSet.calc as { bmr?: { kcal: number; explanation: string } | null; tdee?: { kcal: number; explanation: string } | null; missingData?: string[]; formula_version?: string } | null;
 
   return (
     <Screen>
       <T variant="small">Metas orientativas. As prescritas por profissional nunca são alteradas automaticamente; as definidas por você são mantidas nos recálculos.</T>
       {calc?.bmr ? (
         <Card>
-          <T variant="h3">Base do cálculo</T>
+          <T variant="h3">Como calculamos sua meta</T>
           <T variant="small">{calc.bmr.explanation}</T>
           {calc.tdee ? <T variant="small">{calc.tdee.explanation}</T> : null}
-          <T variant="tiny">Equações estimam médias populacionais; o gasto real pode variar ±10% ou mais. Ajuste conforme sua evolução e orientação profissional.</T>
+          <T variant="tiny">{`Equações estimam médias populacionais; o gasto real pode variar ±10% ou mais. Ajuste conforme sua evolução e orientação profissional.${calc.formula_version ? ` Fórmulas: ${calc.formula_version}.` : ''}`}</T>
         </Card>
       ) : null}
       {calc?.missingData?.length ? <Notice kind="warning">{`Dados faltantes: ${calc.missingData.join(', ')}. Complete em Perfil.`}</Notice> : null}
@@ -80,6 +80,7 @@ export default function Goals() {
             </Row>
             <T variant="small">{t.explanation}</T>
             {t.warnings?.map((w) => <Notice key={w} kind="warning">{w}</Notice>)}
+            {t.source && t.origin === 'system' ? <T variant="tiny" color={colors.muted}>{`Fonte: ${t.source}`}</T> : null}
             <Button
               small
               variant="secondary"
