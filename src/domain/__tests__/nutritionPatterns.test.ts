@@ -56,14 +56,8 @@ describe('B — padrão de proteína escolhido pelo usuário', () => {
   it('2,2 g/kg sobre o peso de referência', () => {
     expect(goals({ protein_g_per_kg: 2.2 }).targets.protein_g.value).toBe(170);
   });
-  it('base na massa livre de gordura da bioimpedância', () => {
-    const p = goals({ protein_g_per_kg: 2.0, protein_basis: 'fat_free_mass' }, 73.7).targets.protein_g;
-    expect(p.value).toBe(147);
-    expect(p.explanation).toContain('massa livre de gordura da bioimpedância (73,7 kg)');
-    // sem exame volta para o peso de referência e avisa
-    const sem = goals({ protein_g_per_kg: 2.0, protein_basis: 'fat_free_mass' }).targets.protein_g;
-    expect(sem.value).toBe(155);
-    expect(sem.warnings?.[0]).toMatch(/não há bioimpedância/);
+  it('base antiga "massa magra" é tratada como peso de referência (o g/kg vale para o peso corporal)', () => {
+    expect(goals({ protein_g_per_kg: 2.0, protein_basis: 'fat_free_mass' }, 73.7).targets.protein_g.value).toBe(155);
   });
   it('peso atual não é usado com IMC ≥ 30 (evita 206–251 g)', () => {
     const p = goals({ protein_g_per_kg: 2.2, protein_basis: 'current' }).targets.protein_g;

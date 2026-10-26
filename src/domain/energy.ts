@@ -33,6 +33,9 @@ export interface BmrResult {
   explanation: string;
 }
 
+/** Número no formato brasileiro (vírgula decimal). */
+const pt = (n: number, d = 1) => String(Math.round(n * 10 ** d) / 10 ** d).replace('.', ',');
+
 export function mifflinStJeor(weightKg: number, heightCm: number, age: number, sex: Sex): number {
   return 10 * weightKg + 6.25 * heightCm - 5 * age + (sex === 'male' ? 5 : -161);
 }
@@ -53,7 +56,7 @@ export function estimateBmr(input: BmrInput): BmrResult | null {
   const mifflin = canMifflin ? mifflinStJeor(weight_kg!, height_cm!, age!, sex!) : null;
   const mifflinText =
     mifflin !== null
-      ? `Mifflin–St Jeor: 10×${weight_kg} kg + 6,25×${height_cm} cm − 5×${age} anos ${sex === 'male' ? '+ 5' : '− 161'} = ${Math.round(mifflin)} kcal/dia.`
+      ? `Mifflin–St Jeor: 10×${pt(weight_kg!)} kg + 6,25×${pt(height_cm!)} cm − 5×${age} anos ${sex === 'male' ? '+ 5' : '− 161'} = ${Math.round(mifflin)} kcal/dia.`
       : '';
   if (fat_free_mass_kg && fat_free_mass_kg > 0) {
     const kcal = katchMcArdle(fat_free_mass_kg);
@@ -61,7 +64,7 @@ export function estimateBmr(input: BmrInput): BmrResult | null {
     return {
       kcal,
       method: 'katch_mcardle',
-      explanation: `Metabolismo de repouso estimado por Katch–McArdle, com a massa livre de gordura da sua bioimpedância: 370 + 21,6×${fat_free_mass_kg} kg = ${Math.round(kcal)} kcal/dia.${compare}`,
+      explanation: `Metabolismo de repouso estimado por Katch–McArdle, com a massa livre de gordura da sua bioimpedância: 370 + 21,6×${pt(fat_free_mass_kg)} kg = ${Math.round(kcal)} kcal/dia.${compare}`,
     };
   }
   if (mifflin !== null) return { kcal: mifflin, method: 'mifflin_st_jeor', explanation: `Metabolismo de repouso estimado — ${mifflinText}` };
@@ -107,7 +110,7 @@ export function estimateTdee(bmrKcal: number, level: ActivityLevel): { kcal: num
   const kcal = bmrKcal * factor;
   return {
     kcal,
-    explanation: `Gasto energético total ≈ metabolismo de repouso ${Math.round(bmrKcal)} × ${factor} (${label}) = ${Math.round(kcal)} kcal/dia.`,
+    explanation: `Gasto energético total ≈ metabolismo de repouso ${Math.round(bmrKcal)} × ${pt(factor, 3)} (${label}) = ${Math.round(kcal)} kcal/dia.`,
   };
 }
 

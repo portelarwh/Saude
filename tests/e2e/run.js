@@ -127,7 +127,8 @@ async function flow() {
     await page.getByLabel('Adicionar 250 mililitros de água').click();
     await page.waitForTimeout(700);
     const body = await page.innerText('body');
-    if (!/Faltam 2,55 L/.test(body)) throw new Error('restante incorreto: ' + (body.match(/Faltam [^\n]+/g) || []).join(' | '));
+    // 30 ml/kg × 80 kg = 2,4 L − 250 ml
+    if (!/Faltam 2,15 L/.test(body)) throw new Error('restante incorreto: ' + (body.match(/Faltam [^\n]+/g) || []).join(' | '));
   });
   await step('refeição por frase', async () => {
     await page.getByLabel('Registro rápido').click();
@@ -156,7 +157,7 @@ async function flow() {
     await page.waitForTimeout(1500);
     const body = await page.innerText('body');
     if (/Etapa 1 de 7/.test(body)) throw new Error('voltou para o onboarding');
-    if (!/Faltam 2,55 L/.test(body)) throw new Error('água não persistiu');
+    if (!/Faltam 2,15 L/.test(body)) throw new Error('água não persistiu');
     if (/Sem registros\n/.test(body.split('Água')[0] || '')) throw new Error('proteína sem registro após recarregar');
     await shot('06-dashboard');
   });
@@ -340,17 +341,58 @@ async function flow() {
     if (blocking.length) throw new Error('não instalável: ' + JSON.stringify(blocking));
     if (manifest.id !== '/') throw new Error('id do app deve ser o caminho do app, recebido ' + manifest.id);
   });
-  await step('padrão de proteína em Metas', async () => {
+  await step('calculadora: base e fator da proteína em Metas', async () => {
     await page.goto(BASE + '/metas', { waitUntil: 'networkidle' });
     await page.waitForTimeout(800);
-    const before = await page.innerText('body');
-    if (!/Padrão de proteína/.test(before) || !/Padrão do app para o seu objetivo: \d,\d g\/kg/.test(before)) throw new Error('card de padrão de proteína: ' + before.slice(0, 400).replace(/\n/g, ' '));
-    await click('2,2 g/kg');
-    await page.waitForTimeout(1200);
-    const after = await page.innerText('body');
-    if (!/Padrão escolhido por você: 2,2 g\/kg/.test(after)) throw new Error('padrão de proteína não aplicado');
-    await click('Padrão do app');
+    const read = async () => {
+      await page.waitForTimeout(1000);
+      const body = await page.innerText('body');
+      const g = (label) => Number((body.match(new RegExp(label + '\\s+([\\d.]+) (?:g|kcal)')) || [])[1]?.replace('.', '') ?? NaN);
+      return { body, p: g('Proteínas'), kcal: g('Calorias'), fat: g('Gorduras'), carb: g('Carboidratos') };
+    };
+    const closes = (r) => Math.abs(r.p * 4 + r.fat * 9 + r.carb * 4 - r.kcal) <= 5;
+    let r = await read();
+    if (!/Padrão de proteína/.test(r.body) || !/Padrão do app para o seu objetivo: 2,0 g\/kg/.test(r.body)) throw new Error('card de padrão de proteína');
+    // Ana: 79,4 kg, 165 cm (IMC 29,2 → peso atual), peso-alvo 70 kg, recomposição com treino → 2,0 g/kg
+    const steps = [
+      [null, Math.round(2.0 * 79.4)],
+      [/^Peso-alvo 70 kg/, 140],
+      ['2,2 g/kg', 154],
+      [/^Peso atual 79,4 kg/, Math.round(2.2 * 79.4)],
+      ['1,6 g/kg', Math.round(1.6 * 79.4)],
+      ['Padrão do app', Math.round(2.0 * 79.4)],
+    ];
+    for (const [chip, expected] of steps) {
+      if (chip) {
+        if (typeof chip === 'string') await click(chip);
+        else await page.getByText(chip).first().click();
+        r = await read();
+      }
+      if (r.p !== expected) throw new Error(`${chip}: proteína esperada ${expected} g, veio ${r.p}`);
+      if (!closes(r)) throw new Error(`${chip}: macros não fecham (${r.p}/${r.fat}/${r.carb} vs ${r.kcal})`);
+    }
+    if (/\d\.\d kg|IMC \d+\.\d/.test(r.body)) throw new Error('número com ponto decimal no texto');
+    await shot('17-metas-proteina');
+
+    // IMC ≥ 30 (como o perfil real): 114,3 kg em 1,65 m → peso de referência = IMC 25 (68,1 kg)
+    await page.goto(BASE + '/perfil', { waitUntil: 'networkidle' });
     await page.waitForTimeout(800);
+    await fill('Peso atual', '114,3');
+    await fill('Peso desejado', '75');
+    await click('Salvar perfil');
+    await page.waitForTimeout(1200);
+    await page.goto(BASE + '/metas', { waitUntil: 'networkidle' });
+    r = await read();
+    if (!/Peso de referência \(IMC 25\) 68,1 kg/.test(r.body)) throw new Error('obesidade: chip do peso de referência ausente');
+    if (r.p !== Math.round(2.0 * 68.1)) throw new Error(`obesidade: esperado ${Math.round(2.0 * 68.1)} g, veio ${r.p}`);
+    if (/Peso atual 114/.test(r.body)) throw new Error('obesidade: peso total não pode ser oferecido como base');
+    await page.getByText(/^Peso-alvo 75 kg/).first().click();
+    r = await read();
+    if (r.p !== 150 || !closes(r)) throw new Error(`obesidade + peso-alvo: esperado 150 g, veio ${r.p}`);
+    await page.getByText(/^Peso de referência \(IMC 25\)/).first().click();
+    r = await read();
+    if (r.p !== 136) throw new Error(`volta ao peso de referência: esperado 136 g, veio ${r.p}`);
+    await shot('18-metas-obesidade');
   });
   await step('versão no topo e "Verificar agora"', async () => {
     const version = fs.readFileSync(path.join(ROOT, 'src/version.ts'), 'utf8').match(/APP_VERSION = '([^']+)'/)[1];

@@ -17,8 +17,20 @@ describe('Teste A — masculino sedentário', () => {
     expect(g.tdee?.kcal).toBe(2400);
     expect(g.bmr?.explanation).toMatch(/Metabolismo de repouso estimado/);
   });
-  it('meta não fica abaixo do metabolismo de repouso (política atual)', () => {
-    expect(goals().targets.energy_kcal.value).toBe(2000);
+  it('emagrecimento moderado (15%): 2.040 kcal, como na especificação', () => {
+    expect(goals().targets.energy_kcal.value).toBe(2040);
+    expect(goals({ deficit_pct: 10 }).targets.energy_kcal.value).toBe(2160);
+  });
+  it('ritmo intenso (20%) abaixo do metabolismo de repouso: alerta, sem travar', () => {
+    const e = goals({ deficit_pct: 20 }).targets.energy_kcal;
+    expect(e.value).toBe(1920);
+    expect(e.warnings?.join(' ')).toMatch(/abaixo do seu metabolismo de repouso/);
+  });
+  it('1.500 kcal (homens) / 1.200 kcal (mulheres) continuam como mínimo', () => {
+    const e = goals({ current_weight_kg: 55, height_cm: 150, sex: 'female', deficit_pct: 20, birth_date: '1950-01-01' }).targets.energy_kcal;
+    expect(e.value).toBe(1200);
+    expect(e.warnings?.join(' ')).toMatch(/mínimo para metas automáticas/);
+    expect(goals({ deficit_pct: 35 }).targets.energy_kcal.value).toBe(2040); // valor inválido volta ao padrão
   });
 });
 
@@ -43,6 +55,18 @@ describe('Teste C — fechamento dos macronutrientes', () => {
 });
 
 describe('Teste D — proteína na obesidade', () => {
+  it('base no peso-alvo de 90 kg com 1,6 g/kg = 144 g (exemplo da especificação)', () => {
+    const t = goals({ protein_g_per_kg: 1.6, protein_basis: 'target_weight' }).targets.protein_g;
+    expect(t.value).toBe(144);
+    expect(t.explanation).toMatch(/seu peso-alvo \(90 kg\)/);
+  });
+  it('peso-alvo implausível volta para o peso de referência', () => {
+    for (const target_weight_kg of [120, 50, null]) {
+      const t = goals({ protein_g_per_kg: 1.6, protein_basis: 'target_weight', target_weight_kg }).targets.protein_g;
+      expect(t.value).toBe(Math.round(77.4 * 1.6));
+      expect(t.warnings?.[0]).toMatch(/peso-alvo precisa ser menor/);
+    }
+  });
   it('nunca 2,2 g/kg sobre os 110 kg', () => {
     const t = goals({ protein_g_per_kg: 2.2, protein_basis: 'current' }).targets.protein_g;
     expect(t.value).toBeLessThan(110 * 2.2 * 0.8);

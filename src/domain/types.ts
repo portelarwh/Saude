@@ -16,8 +16,8 @@ export interface BaseRow {
 
 export type Sex = 'female' | 'male';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
-/** reference = peso atual ou equivalente a IMC 25 se IMC ≥ 30; fat_free_mass = massa livre de gordura medida; current = peso atual (só com IMC < 30). */
-export type ProteinBasis = 'reference' | 'fat_free_mass' | 'current';
+/** reference = peso atual, ou equivalente a IMC 25 se IMC ≥ 30; target_weight = peso-alvo (se plausível); current = peso atual (só com IMC < 30); fat_free_mass = descontinuada (tratada como reference). */
+export type ProteinBasis = 'reference' | 'target_weight' | 'current' | 'fat_free_mass';
 export type Objective = 'fat_loss' | 'maintenance' | 'recomposition' | 'muscle_gain';
 
 /** Sinalizadores de saúde que exigem cautela automática nas metas. */
@@ -52,6 +52,8 @@ export interface Profile extends BaseRow {
   protein_g_per_kg?: number | null;
   /** Peso usado no cálculo da proteína; null = peso de referência. */
   protein_basis?: ProteinBasis | null;
+  /** Ritmo do emagrecimento: déficit de 10, 15 ou 20% (null = 15%). */
+  deficit_pct?: number | null;
   /** Objetivo usado no cálculo das metas (derivado de `objectives`). */
   objective: Objective | null;
   /** Objetivos marcados pelo usuário (pode haver mais de um). */

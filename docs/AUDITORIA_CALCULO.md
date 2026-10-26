@@ -31,7 +31,7 @@ Os números abaixo foram obtidos rodando o motor atual com os dados dos testes A
 6. Fonte científica e versão das fórmulas em cada meta.
 7. Testes A–E da especificação como testes de regressão.
 
-**Dependem de decisão do usuário:**
+**Aprovados pelo usuário e aplicados na 1.3.0:**
 - A. Ritmo do emagrecimento selecionável (10/15/20%), padrão 15%; TMR passa a ser alerta (1.200/1.500 kcal continuam como bloqueio).
 - B. Proteína: nova base "peso-alvo" (quando plausível e o objetivo for emagrecer); base "massa magra" sai da proteína (continua no metabolismo).
 - C. Água: manter 35 ml/kg e mostrar a referência da EFSA ao lado, ou passar para 30 ml/kg.

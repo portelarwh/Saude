@@ -31,7 +31,10 @@ const PROFESSIONAL_ONLY_PROTEIN: HealthFlag[] = ['kidney_disease', 'liver_diseas
 const PROFESSIONAL_ONLY_WATER: HealthFlag[] = ['kidney_disease', 'heart_failure'];
 const NO_AUTOMATIC_DEFICIT: HealthFlag[] = ['pregnancy', 'breastfeeding', 'eating_disorder_history'];
 
-export const DEFAULT_WATER_ML_PER_KG = 35;
+/** Heurística inicial de líquidos (bebidas): 30 ml/kg do peso de referência. */
+const ptNum = (n: number) => String(round(n, 1)).replace('.', ',');
+
+export const DEFAULT_WATER_ML_PER_KG = 30;
 
 export interface GoalInput {
   profile: Pick<
@@ -49,7 +52,7 @@ export interface GoalInput {
     | 'water_ml_per_kg'
     | 'target_date'
   > &
-    Partial<Pick<Profile, 'food_restrictions' | 'strength_sessions_per_week' | 'strength_session_min' | 'protein_g_per_kg' | 'protein_basis'>>;
+    Partial<Pick<Profile, 'food_restrictions' | 'strength_sessions_per_week' | 'strength_session_min' | 'protein_g_per_kg' | 'protein_basis' | 'deficit_pct'>>;
   /** Dados da bioimpedância mais recente, se houver. */
   latestFatFreeMassKg?: number | null;
   today?: Date;
@@ -74,16 +77,16 @@ function target(value: number | null, explanation: string, extra: Partial<GoalTa
  * total superestima as necessidades; usamos o peso equivalente a IMC 25.
  */
 export function referenceWeight(weightKg: number, heightCm: number | null): { kg: number; explanation: string } {
-  if (!heightCm) return { kg: weightKg, explanation: `Peso atual (${weightKg} kg); altura não informada.` };
+  if (!heightCm) return { kg: weightKg, explanation: `Peso atual (${ptNum(weightKg)} kg); altura não informada.` };
   const currentBmi = bmi(weightKg, heightCm);
   if (currentBmi >= 30) {
     const kg = round(weightAtBmi(25, heightCm), 1);
     return {
       kg,
-      explanation: `IMC atual ${round(currentBmi, 1)} (≥ 30): usamos o peso de referência equivalente a IMC 25 para sua altura (${kg} kg), evitando superestimar a necessidade pelo peso total.`,
+      explanation: `IMC atual ${ptNum(currentBmi)} (≥ 30): usamos o peso de referência equivalente a IMC 25 para sua altura (${ptNum(kg)} kg), evitando superestimar a necessidade pelo peso total.`,
     };
   }
-  return { kg: weightKg, explanation: `Peso atual (${weightKg} kg), IMC ${round(currentBmi, 1)}.` };
+  return { kg: weightKg, explanation: `Peso atual (${ptNum(weightKg)} kg), IMC ${ptNum(currentBmi)}.` };
 }
 
 /**
@@ -149,7 +152,6 @@ export const LOW_CARB_RANGE: readonly [number, number] = [100, 130];
 /** Fatores de proteína oferecidos para escolha (g/kg). */
 export const PROTEIN_FACTOR_OPTIONS = [1.2, 1.6, 1.8, 2.0, 2.2] as const;
 
-const ptNum = (n: number) => String(round(n, 1)).replace('.', ',');
 /** Fator de proteína sempre com uma casa: 2 → "2,0". */
 export const formatFactor = (n: number) => n.toFixed(1).replace('.', ',');
 
@@ -158,22 +160,30 @@ export function validProteinFactor(v: number | null | undefined): number | null 
   return typeof v === 'number' && Number.isFinite(v) && v >= 1 && v <= 2.5 ? v : null;
 }
 
+/** Peso-alvo usável como base da proteína: menor que o atual e com IMC entre 18,5 e 30. */
+export function targetWeightUsable(currentKg: number, targetKg: number | null | undefined, heightCm: number | null): boolean {
+  if (!targetKg || !heightCm || targetKg >= currentKg) return false;
+  const b = bmi(targetKg, heightCm);
+  return b >= 18.5 && b < 30;
+}
+
 /** Peso sobre o qual a proteína é calculada. */
 export function proteinBase(
   basis: ProteinBasis,
   ref: { kg: number; explanation: string },
   currentKg: number,
   heightCm: number | null,
-  fatFreeMassKg: number | null,
+  targetKg: number | null | undefined,
 ): { kg: number; explanation: string; warnings: string[] } {
-  if (basis === 'fat_free_mass') {
-    if (fatFreeMassKg && fatFreeMassKg > 0) return { kg: fatFreeMassKg, explanation: `Base: massa livre de gordura da bioimpedância (${ptNum(fatFreeMassKg)} kg).`, warnings: [] };
-    return { ...ref, warnings: ['Base "massa livre de gordura" escolhida, mas não há bioimpedância com esse valor: usamos o peso de referência.'] };
+  if (basis === 'target_weight') {
+    if (targetWeightUsable(currentKg, targetKg, heightCm)) return { kg: targetKg!, explanation: `Base: seu peso-alvo (${ptNum(targetKg!)} kg).`, warnings: [] };
+    return { ...ref, warnings: ['Base "peso-alvo" escolhida, mas o peso-alvo precisa ser menor que o atual e corresponder a IMC entre 18,5 e 30: usamos o peso de referência.'] };
   }
   if (basis === 'current') {
     if (!heightCm || bmi(currentKg, heightCm) < 30) return { kg: currentKg, explanation: `Base: peso atual (${ptNum(currentKg)} kg).`, warnings: [] };
     return { ...ref, warnings: ['Com IMC ≥ 30 o peso atual superestima a necessidade de proteína: usamos o peso de referência.'] };
   }
+  // 'reference' e a antiga base 'fat_free_mass' (descontinuada: o g/kg vale para o peso corporal, não para a massa magra)
   return { ...ref, warnings: [] };
 }
 
@@ -191,30 +201,57 @@ export function proteinFactor(objective: Objective, resistanceTraining: boolean)
   }
 }
 
+/** Ritmos de emagrecimento oferecidos (déficit sobre o gasto total). */
+export const DEFICIT_OPTIONS = [
+  { pct: 10, label: 'Leve' },
+  { pct: 15, label: 'Moderado' },
+  { pct: 20, label: 'Intenso' },
+] as const;
+export const DEFAULT_DEFICIT_PCT = 15;
+
+/** Aceita só 10, 15 ou 20%; qualquer outro valor volta ao padrão. */
+export function validDeficitPct(v: number | null | undefined): number {
+  return DEFICIT_OPTIONS.some((o) => o.pct === v) ? (v as number) : DEFAULT_DEFICIT_PCT;
+}
+
+/**
+ * Meta calórica pelo objetivo. Emagrecimento: GET × (1 − déficit) com déficit
+ * de 10/15/20% (padrão 15%). 1.200 kcal (mulheres) / 1.500 kcal (homens) são
+ * triagem: abaixo disso a meta é limitada e pede acompanhamento. Ficar abaixo
+ * do metabolismo de repouso gera alerta, sem travar.
+ */
 export function calorieTarget(
   tdee: number,
   bmr: number,
   objective: Objective,
   sex: Profile['sex'],
+  deficitPct: number = DEFAULT_DEFICIT_PCT,
 ): { kcal: number; explanation: string; warnings: string[] } {
   const warnings: string[] = [];
-  const floor = Math.max(bmr, sex === 'male' ? 1500 : 1200);
+  const minimum = sex === 'male' ? 1500 : 1200;
   let kcal: number;
   let explanation: string;
+  const applyFloors = () => {
+    if (kcal < minimum) {
+      kcal = minimum;
+      warnings.push(`A meta foi limitada a ${minimum.toLocaleString('pt-BR')} kcal, o mínimo para metas automáticas. Restrições maiores exigem acompanhamento profissional.`);
+    } else if (kcal < bmr) {
+      warnings.push(`A meta (${Math.round(kcal)} kcal) fica abaixo do seu metabolismo de repouso estimado (${Math.round(bmr)} kcal). Se sentir muita fome, cansaço ou perda de rendimento, use um ritmo mais leve.`);
+    }
+  };
   switch (objective) {
     case 'fat_loss': {
-      const deficit = Math.min(tdee * 0.2, 750);
-      kcal = tdee - deficit;
-      explanation = `Déficit moderado de ${Math.round(deficit)} kcal (até 20% do gasto, máximo 750 kcal) para favorecer perda de gordura preservando massa magra.`;
-      if (kcal < floor) {
-        kcal = floor;
-        warnings.push('A meta foi limitada para não ficar abaixo do metabolismo de repouso estimado nem de um mínimo seguro. Déficits maiores exigem acompanhamento profissional.');
-      }
+      const d = validDeficitPct(deficitPct);
+      const label = DEFICIT_OPTIONS.find((o) => o.pct === d)!.label.toLowerCase();
+      kcal = tdee * (1 - d / 100);
+      explanation = `Emagrecimento em ritmo ${label}: déficit de ${d}% do gasto (${Math.round(tdee - kcal)} kcal) para perder gordura preservando massa magra.`;
+      applyFloors();
       break;
     }
     case 'recomposition':
-      kcal = Math.max(tdee * 0.9, floor);
-      explanation = 'Déficit leve (~10%) para recomposição corporal, combinado a treino de força e proteína adequada.';
+      kcal = tdee * 0.9;
+      explanation = 'Déficit leve (10%) para recomposição corporal, combinado a treino de força e proteína adequada.';
+      applyFloors();
       break;
     case 'muscle_gain': {
       const surplus = Math.min(tdee * 0.1, 400);
@@ -331,7 +368,7 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
       warnings: ['Gestação, amamentação ou histórico de transtorno alimentar exigem meta definida por profissional de saúde.'],
     });
   } else {
-    const c = calorieTarget(tdeeResult.kcal, bmrResult.kcal, objective, p.sex);
+    const c = calorieTarget(tdeeResult.kcal, bmrResult.kcal, objective, p.sex, p.deficit_pct ?? DEFAULT_DEFICIT_PCT);
     const warnings = [...c.warnings, ...(activity?.incoherent ? [`${activity.reason} Ajuste em Perfil › Atividade.`] : [])];
     energy = target(c.kcal, `${bmrResult.explanation} ${tdeeResult.explanation} ${c.explanation}`, { warnings: warnings.length ? warnings : undefined });
   }
@@ -349,7 +386,7 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
     });
   } else {
     const pf = proteinFactor(objective, rt);
-    const base = proteinBase(p.protein_basis ?? 'reference', ref, p.current_weight_kg!, p.height_cm, input.latestFatFreeMassKg ?? null);
+    const base = proteinBase(p.protein_basis ?? 'reference', ref, p.current_weight_kg!, p.height_cm, p.target_weight_kg);
     const custom = validProteinFactor(p.protein_g_per_kg);
     const factor = custom ?? pf.factor;
     const grams = Math.round(base.kg * factor);
@@ -424,11 +461,12 @@ export function calculateGoals(input: GoalInput): GoalCalculation {
     const activityExtra = p.activity_level === 'active' || p.activity_level === 'very_active' ? 500 : 0;
     const climateExtra = p.hot_climate ? 500 : 0;
     const ml = Math.round((base + activityExtra + climateExtra) / 50) * 50;
-    const parts = [`${mlPerKg} ml/kg × ${ref.kg} kg = ${Math.round(base)} ml`];
+    const parts = [`${mlPerKg} ml/kg × ${ptNum(ref.kg)} kg = ${Math.round(base)} ml`];
     if (activityExtra) parts.push('+500 ml pela atividade física');
     if (climateExtra) parts.push('+500 ml por clima quente');
-    water = target(ml, `${parts.join(' ')}. Refere-se a bebidas; a água dos alimentos é contabilizada à parte.`, {
-      range: [Math.round(ref.kg * 30), Math.round(ref.kg * 40)],
+    const efsa = p.sex === 'female' ? 'cerca de 2,0 L/dia de água total (≈ 1,6 L em bebidas)' : p.sex === 'male' ? 'cerca de 2,5 L/dia de água total (≈ 2,0 L em bebidas)' : '2,0–2,5 L/dia de água total';
+    water = target(ml, `${parts.join(' ')}. Meta de bebidas; a água dos alimentos é contada à parte. Referência da EFSA para adultos: ${efsa}, já incluindo os alimentos.`, {
+      range: [Math.round(ref.kg * 30), Math.round(ref.kg * 35)],
     });
   }
 

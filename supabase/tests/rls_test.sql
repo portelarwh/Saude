@@ -97,7 +97,14 @@ select pg_temp.assert(
   (select changed_columns = array['name'] and old_row is null from public.audit_log where table_name = 'profiles' limit 1),
   'alteração de perfil registrada sem copiar dados sensíveis');
 update public.profiles set objectives = array['fat_loss', 'muscle_gain'], objective = 'recomposition';
-update public.profiles set strength_sessions_per_week = 4, strength_session_min = 60, protein_g_per_kg = 2.0, protein_basis = 'fat_free_mass';
+update public.profiles set strength_sessions_per_week = 4, strength_session_min = 60, protein_g_per_kg = 2.0, protein_basis = 'target_weight', deficit_pct = 15;
+do $$
+begin
+  update public.profiles set deficit_pct = 35;
+  raise exception 'FALHOU: déficit de 35%% aceito';
+exception when check_violation then
+  raise notice 'ok - ritmo do emagrecimento só 10, 15 ou 20%%';
+end $$;
 do $$
 begin
   update public.profiles set protein_g_per_kg = 4.0;

@@ -116,7 +116,7 @@ function ProfileForm({ initial }: { initial: Profile }) {
         <Field label="Suplementos" value={p.supplements_notes ?? ''} onChangeText={(t) => set('supplements_notes', t)} />
         <Field label="Orientações profissionais" value={p.professional_guidance ?? ''} onChangeText={(t) => set('professional_guidance', t)} multiline />
         <Toggle label="Clima quente" value={Boolean(p.hot_climate)} onChange={(v) => set('hot_climate', v)} />
-        <NumberField label="Referência de líquidos (ml/kg/dia)" value={p.water_ml_per_kg} onChange={(v) => set('water_ml_per_kg', v)} hint="Padrão 35 ml/kg. Ajuste conforme orientação profissional (faixa aceita: 20–60)." />
+        <NumberField label="Referência de líquidos (ml/kg/dia)" value={p.water_ml_per_kg} onChange={(v) => set('water_ml_per_kg', v)} hint="Padrão 30 ml/kg. Ajuste conforme orientação profissional (faixa aceita: 20–60)." />
       </Card>
 
       {msg ? <Notice kind={msg.startsWith('Perfil salvo') ? 'success' : 'error'}>{msg}</Notice> : null}

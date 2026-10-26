@@ -43,12 +43,13 @@ describe('metas orientativas', () => {
     expect(r.bmr?.kcal).toBeCloseTo(1470.25);
     expect(r.tdee?.kcal).toBeCloseTo(1470.25 * 1.375);
     const t = r.targets;
-    // déficit de 20% do GET (≈404 kcal), limitado pelo piso (TMB)
-    expect(t.energy_kcal.value).toBe(Math.round((1470.25 * 1.375 * 0.8) / 10) * 10);
+    // ritmo moderado: déficit de 15% do GET
+    expect(t.energy_kcal.value).toBe(Math.round((1470.25 * 1.375 * 0.85) / 10) * 10);
     expect(t.energy_kcal.explanation).toMatch(/Mifflin/);
     expect(t.protein_g.value).toBe(Math.round(80 * 1.8)); // IMC 29,4 -> peso atual
     expect(t.fiber_g.value).toBeGreaterThanOrEqual(25);
-    expect(t.water_ml.value).toBe(2800); // 35 ml/kg × 80 kg
+    expect(t.water_ml.value).toBe(2400); // 30 ml/kg × 80 kg
+    expect(t.water_ml.explanation).toMatch(/EFSA.*2,0 L\/dia/);
     for (const k of Object.keys(t) as (keyof typeof t)[]) expect(t[k].origin).toBe('system');
   });
 

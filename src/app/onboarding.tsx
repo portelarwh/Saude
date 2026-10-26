@@ -7,7 +7,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Image, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ACTIVITY_FACTORS, bmi, bmiCategory } from '../domain/energy';
-import { assessTimeline, calculateGoals, combineObjectives, GOAL_KEYS, GOAL_LABELS, normalizeHeightCm, profileObjectives } from '../domain/goals';
+import { assessTimeline, calculateGoals, combineObjectives, DEFICIT_OPTIONS, validDeficitPct, GOAL_KEYS, GOAL_LABELS, normalizeHeightCm, profileObjectives } from '../domain/goals';
 import { formatDateBR, normalizeTime, normalizeTimeFields, parseBRDate } from '../domain/dates';
 import { defaultSettings } from '../domain/notifications';
 import { resumeStep } from '../domain/onboarding';
@@ -244,6 +244,9 @@ function OnboardingForm({ saved: initial }: { saved: Profile | null }) {
           <>
             <T variant="h2">Rotina e objetivo</T>
             <ObjectivesSelect value={profileObjectives(p)} onChange={(list) => setP((cur) => ({ ...cur, objectives: list, objective: combineObjectives(list) }))} />
+            {p.objective === 'fat_loss' ? (
+              <ChipSelect<number> label="Ritmo do emagrecimento" options={DEFICIT_OPTIONS.map((o) => ({ value: o.pct, label: `${o.label} (${o.pct}%)` }))} value={validDeficitPct(p.deficit_pct)} onChange={(v) => set('deficit_pct', v)} />
+            ) : null}
             <ChipSelect label="Nível de atividade física" options={ACTIVITY_OPTIONS} value={p.activity_level} onChange={(v) => set('activity_level', v)} />
             {p.activity_level ? <T variant="small">{ACTIVITY_FACTORS[p.activity_level].description}</T> : null}
             <TrainingFields p={p} onChange={(patch) => setP((cur) => ({ ...cur, ...patch }))} />

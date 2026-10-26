@@ -66,7 +66,7 @@ export default function Sources() {
         <T variant="small">• Fatores de atividade: 1,2 a 1,9 (FAO/OMS e literatura clássica).</T>
         <T variant="small">• Proteína: 1,2–2,2 g/kg conforme objetivo e treino de força, usando peso de referência (IMC 25) em obesidade.</T>
         <T variant="small">• Fibras: 14 g/1.000 kcal (Institute of Medicine), mínimo de 25 g.</T>
-        <T variant="small">• Líquidos: referência configurável em ml/kg/dia (padrão 35), com ajustes por atividade e clima.</T>
+        <T variant="small">• Líquidos: referência configurável em ml/kg/dia (padrão 30), com ajustes por atividade e clima; referência da EFSA (2,0 L mulheres / 2,5 L homens de água total) mostrada ao lado.</T>
         <T variant="small">• Atividade física: recomendações da OMS (2020).</T>
       </Card>
     </Screen>
