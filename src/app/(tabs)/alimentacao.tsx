@@ -29,6 +29,11 @@ export default function Diary() {
   const { foods } = useAllFoods();
   const foodById = (id: string) => foods.find((f) => f.id === id);
   const measureOf = (e: DiaryEntry) => (e.origin === 'supplement' ? null : foodById(e.food_id)?.household_measures[0] ?? null);
+  /** "4 colheres de sopa · 100 g" pela medida do alimento; senão a medida informada na nota ("60 g (1 concha pequena)"). */
+  const amountText = (e: DiaryEntry) => {
+    const d = describeAmount(e.amount, e.unit, measureOf(e));
+    return !d.includes('·') && e.note ? `${d} (${e.note})` : d;
+  };
   const [amount, setAmount] = useState<number | null>(null);
 
   const dayEntries = entries.data.filter((e) => e.date === date);
@@ -120,7 +125,7 @@ export default function Diary() {
                 <ListItem
                   key={e.id}
                   title={e.food_name}
-                  subtitle={`${describeAmount(e.amount, e.unit, measureOf(e))} · ${num(e.nutrients.energy_kcal)} kcal · ${num(e.nutrients.protein_g, 1)} g prot.${e.compounds ? ` · ${formatCompounds(e.compounds)}` : ''}`}
+                  subtitle={`${amountText(e)} · ${num(e.nutrients.energy_kcal)} kcal · ${num(e.nutrients.protein_g, 1)} g prot.${e.compounds ? ` · ${formatCompounds(e.compounds)}` : ''}`}
                   onPress={() => {
                     setEditing(e);
                     setAmount(e.amount);

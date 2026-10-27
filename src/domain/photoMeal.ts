@@ -11,6 +11,7 @@
  */
 import { AGENT_FORMAT, type AgentMeal, type MealReview } from './agentFormat';
 import { findDuplicate, normalizeText } from './foodSearch';
+import { NUTRIENT_KEYS, scalePer100, sumNutrients, type Nutrients } from './nutrients';
 import type { Food, MealType } from './types';
 
 const MEAL_KEY: Record<MealType, string> = {
@@ -142,4 +143,53 @@ export function estimatedItemsToFoods(review: MealReview, existing: Food[]): Est
     });
   });
   return out;
+}
+
+/**
+ * O prato inteiro como um alimento (para lançar como uma linha só no diário).
+ * Valores por 100 g = soma dos itens ÷ peso total. Como em receitas, nutriente
+ * que falta em algum item fica não informado no prato (não vira zero).
+ */
+export function plateFromReview(review: MealReview): { food: Omit<Food, 'id' | 'user_id'>; amount: number } | null {
+  const parts = review.items
+    .filter((i) => i.choice && i.amount && i.amount > 0)
+    .map((i) => ({ amount: i.amount!, per100: i.choice!.kind === 'food' ? i.choice!.food.per100 : i.choice!.per100, estimated: i.choice!.kind === 'estimate' || (i.choice!.kind === 'food' && i.choice!.food.verification === 'estimated') }));
+  if (!parts.length) return null;
+  const total = parts.reduce((s, p) => s + p.amount, 0);
+  const sum = sumNutrients(parts.map((p) => scalePer100(p.per100, p.amount)));
+  const per100: Nutrients = {};
+  for (const k of NUTRIENT_KEYS) {
+    if (!parts.some((p) => k in p.per100)) continue;
+    per100[k] = sum.missing[k] > 0 ? null : (sum.values[k] * 100) / total;
+  }
+  const name = review.name.trim() || 'Prato';
+  return {
+    amount: Math.round(total),
+    food: {
+      name,
+      aliases: [],
+      brand: null,
+      flavor: null,
+      variant: null,
+      category: null,
+      preparation_state: 'preparado',
+      base_unit: 'g',
+      serving_size: Math.round(total),
+      serving_label: '1 prato',
+      household_measures: [{ label: '1 prato', amount: Math.round(total), estimated: true }],
+      per100,
+      trace_nutrients: [],
+      source: parts.some((p) => p.estimated) ? 'ai_estimate' : 'recipe',
+      source_ref: 'Foto do prato analisada por IA externa',
+      verification: 'estimated',
+      verified_at: null,
+      label_basis: null,
+      barcode: null,
+      ingredients_text: review.items.map((i) => `${i.input.alimento}${i.amount ? ` (${Math.round(i.amount)} g)` : ''}`).join(', '),
+      is_supplement: false,
+      supplement_category: null,
+      compounds_per_serving: null,
+      tags: ['prato', 'foto do prato'],
+    },
+  };
 }

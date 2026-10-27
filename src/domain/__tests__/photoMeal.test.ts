@@ -1,6 +1,6 @@
 import { referenceFoods } from '../../data/reference';
 import { parseAgentPaste, reviewAgentMeal } from '../agentFormat';
-import { estimatedItemsToFoods, parsePlainMealText, photoMealPrompt } from '../photoMeal';
+import { estimatedItemsToFoods, parsePlainMealText, photoMealPrompt, plateFromReview } from '../photoMeal';
 import { makeFood } from './fixtures';
 
 const RESPOSTA = `Aqui está uma estimativa das quantidades e do valor calórico dos alimentos visíveis no prato:
@@ -67,5 +67,24 @@ describe('resposta em texto livre (exemplo real)', () => {
 
   it('texto sem itens não é lido', () => {
     expect(parsePlainMealText('Que prato bonito!', null)).toBeNull();
+  });
+});
+
+describe('lançar como prato', () => {
+  it('um alimento com o peso total e calorias somadas; nutriente incompleto fica não informado', () => {
+    const review = reviewAgentMeal(parsePlainMealText(RESPOSTA, 'lunch')!, referenceFoods());
+    const plate = plateFromReview(review)!;
+    expect(plate.amount).toBe(165 + 100 + 60 + 40);
+    const kcal = review.items.reduce((s, i) => {
+      const per100 = i.choice!.kind === 'food' ? i.choice!.food.per100 : i.choice!.per100;
+      return s + (per100.energy_kcal! * i.amount!) / 100;
+    }, 0);
+    expect((plate.food.per100.energy_kcal! * plate.amount) / 100).toBeCloseTo(kcal, 5);
+    expect(plate.food.per100.protein_g).toBeNull(); // frango e salada sem proteína no texto
+    expect(plate.food).toMatchObject({ source: 'ai_estimate', verification: 'estimated', serving_label: '1 prato' });
+    expect(plate.food.ingredients_text).toMatch(/Arroz \(100 g\)/);
+  });
+  it('sem itens válidos não há prato', () => {
+    expect(plateFromReview({ name: 'x', meal: null, notes: null, items: [] })).toBeNull();
   });
 });

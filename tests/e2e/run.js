@@ -267,7 +267,10 @@ async function flow() {
     if (!body.includes('estimativa da IA externa')) throw new Error('estimativa não sinalizada');
     if (body.includes('999')) throw new Error('usou caloria do agente para alimento da base');
     await shot('15-colar-agente');
-    await click('Salvar e registrar agora');
+    await page.getByLabel('Também guardar em Refeições salvas', { exact: true }).first().click();
+    await page.getByText(/^Lançar no (?!diário)/).first().click();
+    await page.waitForTimeout(800);
+    if (!/Salvo em Refeições salvas/.test(await page.innerText('body'))) throw new Error('lançar com "guardar" ligado: ' + ((await page.innerText('body')).match(/(item\(ns\)|Salvo|lançado)[^\n]*/g) || []).join(' | '));
     await page.waitForTimeout(800);
     await click('Conferir e salvar alimento');
     await page.waitForTimeout(1000);
@@ -556,16 +559,35 @@ async function flow() {
     body = await page.innerText('body');
     if (!/Cadastrar 2 item\(ns\) sem cadastro em Meus alimentos/.test(body)) throw new Error('itens sem cadastro não identificados: ' + body.slice(0, 300));
     await shot('21-foto-prato');
-    await click('Salvar e registrar agora');
+    await click('Lançar no almoço');
     await page.waitForTimeout(1000);
-    if (!/2 item\(ns\) cadastrado\(s\) em Meus alimentos/.test(await page.innerText('body'))) throw new Error('itens não cadastrados');
+    body = await page.innerText('body');
+    if (!/4 item\(ns\) lançado\(s\) em Almoço/.test(body) || !/2 item\(ns\) cadastrado\(s\) em Meus alimentos/.test(body)) throw new Error('itens não lançados: ' + (body.match(/item\(ns\)[^\n]*/) || [''])[0]);
+    if (/Salvo em Refeições salvas/.test(body)) throw new Error('não deveria salvar o prato sem pedir');
     await page.goto(BASE + '/meus-alimentos', { waitUntil: 'networkidle' });
     await page.waitForTimeout(800);
     body = await page.innerText('body');
     if (!/Frango desfiado com puré\/mandioca/.test(body) || !/#estimativa/.test(body)) throw new Error('alimento estimado não aparece em Meus alimentos');
     await page.goto(BASE + '/alimentacao', { waitUntil: 'networkidle' });
     await page.waitForTimeout(800);
-    if (!/Frango desfiado com puré\/mandioca/.test(await page.innerText('body'))) throw new Error('prato não registrado no diário');
+    body = await page.innerText('body');
+    if (!/Frango desfiado com puré\/mandioca/.test(body)) throw new Error('itens não registrados no diário');
+    if (!/4 colheres de sopa · 100 g/.test(body) || !/60 g \(1 concha pequena\)/.test(body)) throw new Error('quantidade e medida não aparecem no diário: ' + (body.match(/[^\n]*(Arroz|Feijão)[^\n]*\n[^\n]*/g) || []).join(' | '));
+
+    // de novo, agora como prato (uma linha só)
+    await page.getByText('Foto', { exact: true }).nth(4).click(); // jantar
+    await page.waitForTimeout(800);
+    await fill('Resposta da IA', resposta);
+    await click('Interpretar');
+    await page.waitForTimeout(800);
+    await click('Prato (uma linha só)');
+    await fill('Nome', 'Prato de teste da foto');
+    await click('Lançar no jantar');
+    await page.waitForTimeout(1000);
+    if (!/Prato “Prato de teste da foto” \(365 g\) lançado em Jantar/.test(await page.innerText('body'))) throw new Error('prato não lançado');
+    await page.goto(BASE + '/alimentacao', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    if (!/Prato de teste da foto/.test(await page.innerText('body'))) throw new Error('prato não aparece no diário');
   });
   await step('editar refeição salva e meus alimentos', async () => {
     await page.goto(BASE + '/refeicoes', { waitUntil: 'networkidle' });

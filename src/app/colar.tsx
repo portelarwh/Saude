@@ -9,7 +9,8 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { AGENT_INSTRUCTIONS, agentLabelToLabelData, parseAgentPaste, reviewAgentMeal, reviewToSavedMeal, type AgentDocument, type MealReview, type ReviewItem } from '../domain/agentFormat';
 import { normalizeLabel } from '../domain/labels';
-import { estimatedItemsToFoods, parsePlainMealText, photoMealPrompt } from '../domain/photoMeal';
+import { buildEntry } from '../domain/entries';
+import { estimatedItemsToFoods, parsePlainMealText, photoMealPrompt, plateFromReview } from '../domain/photoMeal';
 import { scalePer100, sumNutrients } from '../domain/nutrients';
 import { savedMealToEntries } from '../domain/savedMeals';
 import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type Food, type MealType, type SavedMeal } from '../domain/types';
@@ -169,6 +170,8 @@ function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSav
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [registerItems, setRegisterItems] = useState(true);
+  const [mode, setMode] = useState<'items' | 'plate'>('items');
+  const [keepPlate, setKeepPlate] = useState(false);
   const toRegister = estimatedItemsToFoods(review, foods);
 
   const update = (i: number, patch: Partial<ReviewItem>) => onChange({ ...review, items: review.items.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
@@ -177,7 +180,7 @@ function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSav
   const save = async (alsoLog: boolean) => {
     setError(null);
     try {
-      // itens sem cadastro viram alimentos (estimativa) e a refeição passa a apontar para eles
+      // itens sem cadastro viram alimentos (estimativa) e passam a ser usados nos registros
       let final = review;
       if (registerItems && toRegister.length) {
         const created = await store.insertMany<Food>('foods', toRegister.map((t) => ({ ...t.food, id: `user:${newId()}` })));
@@ -187,12 +190,26 @@ function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSav
         }) };
       }
       const row = reviewToSavedMeal({ ...final, meal });
-      await store.insert<SavedMeal>('saved_meals', row);
-      if (alsoLog) {
-        await store.insertMany<DiaryEntry>('diary_entries', savedMealToEntries(row, { date: foodsDate ?? today, meal, consumed_at: new Date().toISOString(), groupId: newId() }));
+      const date = foodsDate ?? today;
+      const consumed_at = new Date().toISOString();
+      const parts: string[] = [];
+      if (alsoLog && mode === 'items') {
+        await store.insertMany<DiaryEntry>('diary_entries', savedMealToEntries(row, { date, meal, consumed_at, groupId: newId() }));
+        parts.push(`${row.items.length} item(ns) lançado(s) em ${MEAL_LABELS[meal]}, cada um com a sua quantidade.`);
       }
-      const extra = registerItems && toRegister.length ? ` ${toRegister.length} item(ns) cadastrado(s) em Meus alimentos como estimativa.` : '';
-      setDone((alsoLog ? 'Refeição salva e registrada no diário.' : 'Refeição salva. Use em Alimentação › Refeições salvas.') + extra);
+      if (alsoLog && mode === 'plate') {
+        const plate = plateFromReview(final);
+        if (!plate) throw new Error('Nenhum item com alimento e quantidade para montar o prato.');
+        const food = await store.insert<Food>('foods', { ...plate.food, id: `user:${newId()}` });
+        await store.insert<DiaryEntry>('diary_entries', buildEntry(food, plate.amount, { date, meal, origin: 'copy', consumed_at, note: '1 prato' }));
+        parts.push(`Prato “${food.name}” (${plate.amount} g) lançado em ${MEAL_LABELS[meal]} e cadastrado em Meus alimentos.`);
+      }
+      if (keepPlate || !alsoLog) {
+        await store.insert<SavedMeal>('saved_meals', row);
+        parts.push('Salvo em Refeições salvas.');
+      }
+      if (registerItems && toRegister.length) parts.push(`${toRegister.length} item(ns) cadastrado(s) em Meus alimentos como estimativa.`);
+      setDone(parts.join(' '));
       onSaved();
     } catch (e) {
       setError((e as Error).message);
@@ -224,7 +241,7 @@ function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSav
               ) : null}
             </Row>
             {item.choice?.kind === 'estimate' ? <Badge label="estimativa da IA externa — não verificada" tone="warning" /> : null}
-            <NumberField label="Quantidade" suffix={item.choice?.kind === 'food' ? item.choice.food.base_unit : 'g'} value={item.amount} onChange={(v) => update(i, { amount: v })} />
+            <NumberField label={`Quantidade${item.input.medida ? ` (IA: ${item.input.medida})` : ''}`} suffix={item.choice?.kind === 'food' ? item.choice.food.base_unit : 'g'} value={item.amount} onChange={(v) => update(i, { amount: v })} />
             <T variant="small">{n ? `${num(n.energy_kcal)} kcal · ${num(n.protein_g, 1)} g proteína · ${num(n.carbs_g, 1)} g carbo · ${num(n.fat_g, 1)} g gordura` : 'Escolha o alimento e a quantidade'}</T>
             {item.warnings.map((w) => <T key={w} variant="tiny" color={colors.warning}>{`• ${w}`}</T>)}
           </View>
@@ -245,10 +262,23 @@ function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSav
       {error ? <Notice kind="error">{error}</Notice> : null}
       {done ? <Notice kind="success">{done}</Notice> : null}
       {!saved ? (
-        <Row wrap>
-          <Button icon="bookmark-outline" title="Salvar refeição" onPress={() => save(false)} />
-          <Button variant="secondary" icon="add" title="Salvar e registrar agora" onPress={() => save(true)} />
-        </Row>
+        <>
+          <ChipSelect<'items' | 'plate'>
+            label="Lançar no diário como"
+            options={[
+              { value: 'items', label: 'Itens (cada alimento com sua quantidade)' },
+              { value: 'plate', label: 'Prato (uma linha só)' },
+            ]}
+            value={mode}
+            onChange={setMode}
+          />
+          {mode === 'plate' ? <T variant="tiny">O prato vira um alimento em Meus alimentos (para repetir depois). Nutriente que faltar em algum item fica como não informado no prato.</T> : null}
+          <Toggle label="Também guardar em Refeições salvas" value={keepPlate} onChange={setKeepPlate} />
+          <Row wrap>
+            <Button icon="add" title={`Lançar no ${MEAL_LABELS[meal].toLowerCase()}`} onPress={() => save(true)} />
+            <Button variant="secondary" icon="bookmark-outline" title="Só salvar a refeição" onPress={() => save(false)} />
+          </Row>
+        </>
       ) : null}
     </Card>
   );

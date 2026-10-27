@@ -35,11 +35,11 @@ function itemFood(item: SavedMealItem): Food {
   };
 }
 
-/** Itens do diário para registrar uma refeição salva (mesmo grupo). */
+/** Itens do diário para registrar uma refeição salva (mesmo grupo). A medida informada (ex.: "1 concha") vai na nota do item. */
 export function savedMealToEntries(meal: Pick<SavedMeal, 'items' | 'name'>, opts: Omit<EntryOptions, 'origin'> & { groupId: string }): NewDiaryEntry[] {
   return meal.items.map((item) => {
     const food = itemFood(item);
-    const o: EntryOptions = { ...opts, origin: 'copy', group_id: opts.groupId, note: `Refeição salva: ${meal.name}` };
+    const o: EntryOptions = { ...opts, origin: 'copy', group_id: opts.groupId, note: item.measure ?? null };
     const e = item.is_supplement && item.serving_size ? buildSupplementEntry(food, item.amount / item.serving_size, o) : buildEntry(food, item.amount, o);
     // buildSupplementEntry marca origem "supplement"; mantemos a origem da refeição salva
     return { ...e, origin: 'copy' };
