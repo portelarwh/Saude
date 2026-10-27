@@ -75,7 +75,7 @@ function Editor({ existing }: { existing?: Recipe }) {
               label="Quantidade"
               unit={ing.unit}
               value={ing.amount}
-              measure={foods.find((f) => f.id === ing.food_id)?.household_measures[0] ?? null}
+              measures={foods.find((f) => f.id === ing.food_id)?.household_measures}
               onChange={(v) => setIngredients((cur) => cur.map((x, j) => (j === i ? { ...x, amount: v } : x)))}
             />
           </View>

@@ -496,29 +496,50 @@ async function flow() {
     await page.waitForTimeout(500);
     await page.getByText('Leite Teste', { exact: true }).last().click();
     await page.waitForTimeout(400);
-    // no celular o campo não pode ficar coberto pelos botões: quantidade em linha própria
-    const field = page.getByLabel('Quantidade', { exact: true }).first();
-    await field.fill('');
-    await field.pressSequentially('300');
+    // leite tem medida caseira (1 copo = 200 ml): abre em copos
+    const copos = page.getByLabel('Quantidade (copos)', { exact: true });
+    if ((await copos.inputValue()) !== '1') throw new Error('ingrediente deveria abrir em 1 copo: ' + (await copos.inputValue()));
+    await copos.fill('');
+    await copos.pressSequentially('1,5');
     await page.waitForTimeout(300);
     let body = await page.innerText('body');
-    if ((await field.inputValue()) !== '300' || !/180 kcal/.test(body)) throw new Error('300 ml não aplicado: ' + (body.match(/Receita inteira[^\n]*/) || [''])[0]);
-    // em porções: 1,5 copo = 300 ml; 2 copos = 400 ml
-    const portions = page.getByLabel('Em porções (1 copo = 200 ml)', { exact: true });
-    if ((await portions.inputValue()) !== '1,5') throw new Error('porções não sincronizadas: ' + (await portions.inputValue()));
-    await portions.fill('');
-    await portions.pressSequentially('2');
+    if (!/= 300 ml/.test(body) || !/180 kcal/.test(body)) throw new Error('1,5 copo ≠ 300 ml: ' + (body.match(/Receita inteira[^\n]*/) || [''])[0]);
+    // em mililitros
+    await click('mililitros');
+    const ml = page.getByLabel('Quantidade (ml)', { exact: true });
+    if ((await ml.inputValue()) !== '300') throw new Error('ml não sincronizado: ' + (await ml.inputValue()));
+    await ml.fill('');
+    await ml.pressSequentially('400');
     await page.waitForTimeout(300);
     body = await page.innerText('body');
-    if ((await field.inputValue()) !== '400' || !/240 kcal/.test(body)) throw new Error('2 copos ≠ 400 ml');
+    if (!/240 kcal/.test(body)) throw new Error('400 ml não aplicado');
     await shot('19-receita');
+  });
+  await step('ovo em unidades, não em gramas', async () => {
+    await page.goto(BASE + '/adicionar', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    await fill('Pesquisar alimento', 'ovo cozido');
+    await page.waitForTimeout(500);
+    await page.getByText('Ovo, de galinha, inteiro, cozido/10minutos', { exact: true }).first().click();
+    await page.waitForTimeout(700);
+    const un = page.getByLabel('Quantidade (unidades)', { exact: true });
+    if ((await un.inputValue()) !== '1') throw new Error('ovo deveria abrir em 1 unidade: ' + (await un.inputValue()));
+    await un.fill('');
+    await un.pressSequentially('3');
+    await page.waitForTimeout(300);
+    if (!/= 150 g/.test(await page.innerText('body'))) throw new Error('3 ovos ≠ 150 g');
+    await shot('20-ovo-unidades');
+    await click('Adicionar ao diário');
+    await page.waitForTimeout(1000);
+    if (!/3 unidades · 150 g/.test(await page.innerText('body'))) throw new Error('diário não mostra "3 unidades · 150 g"');
   });
   await step('editar refeição salva e meus alimentos', async () => {
     await page.goto(BASE + '/refeicoes', { waitUntil: 'networkidle' });
     await page.waitForTimeout(800);
     await click('Editar');
     await page.waitForTimeout(800);
-    const q = page.getByLabel('Quantidade', { exact: true }).first();
+    if (await page.getByText('gramas', { exact: true }).count()) await page.getByText('gramas', { exact: true }).first().click();
+    const q = page.getByLabel('Quantidade (g)', { exact: true }).first();
     await q.fill('');
     await q.pressSequentially('123');
     await click('Salvar alterações');

@@ -8,10 +8,12 @@ import { copyEntries } from '../../domain/entries';
 import { planAdherence } from '../../domain/dietPlan';
 import { scalePer100, sumNutrients } from '../../domain/nutrients';
 import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type DietPlan, type MealType, type SavedMeal } from '../../domain/types';
+import { describeAmount } from '../../domain/portions';
 import { savedMealFromEntries } from '../../domain/savedMeals';
 import { useStore } from '../../state/AppProvider';
-import { useCollection, useGoals, useToday } from '../../state/hooks';
-import { Badge, Button, Card, Divider, IconButton, ListItem, Notice, NumberField, Row, Screen, Sheet, T } from '../../ui/components';
+import { useAllFoods, useCollection, useGoals, useToday } from '../../state/hooks';
+import { Badge, Button, Card, Divider, IconButton, ListItem, Notice, Row, Screen, Sheet, T } from '../../ui/components';
+import { AmountField } from '../../ui/AmountField';
 import { num, SOURCE_LABEL, VERIFICATION_LABEL } from '../../ui/format';
 import { useTheme } from '../../ui/theme';
 
@@ -24,6 +26,9 @@ export default function Diary() {
   const plans = useCollection<DietPlan>('diet_plans', { eq: { active: true } });
   const { goalSet } = useGoals();
   const [editing, setEditing] = useState<DiaryEntry | null>(null);
+  const { foods } = useAllFoods();
+  const foodById = (id: string) => foods.find((f) => f.id === id);
+  const measureOf = (e: DiaryEntry) => (e.origin === 'supplement' ? null : foodById(e.food_id)?.household_measures[0] ?? null);
   const [amount, setAmount] = useState<number | null>(null);
 
   const dayEntries = entries.data.filter((e) => e.date === date);
@@ -112,7 +117,7 @@ export default function Diary() {
                 <ListItem
                   key={e.id}
                   title={e.food_name}
-                  subtitle={`${num(e.amount)} ${e.unit} · ${num(e.nutrients.energy_kcal)} kcal · ${num(e.nutrients.protein_g, 1)} g prot.${e.compounds ? ` · ${formatCompounds(e.compounds)}` : ''}`}
+                  subtitle={`${describeAmount(e.amount, e.unit, measureOf(e))} · ${num(e.nutrients.energy_kcal)} kcal · ${num(e.nutrients.protein_g, 1)} g prot.${e.compounds ? ` · ${formatCompounds(e.compounds)}` : ''}`}
                   onPress={() => {
                     setEditing(e);
                     setAmount(e.amount);
@@ -143,7 +148,7 @@ export default function Diary() {
               <Badge label={SOURCE_LABEL[editing.source] ?? editing.source} tone="info" />
               <Badge label={VERIFICATION_LABEL[editing.verification]} tone={editing.verification === 'estimated' ? 'warning' : 'neutral'} />
             </Row>
-            <NumberField label="Quantidade" suffix={editing.unit} value={amount} onChange={setAmount} />
+            <AmountField key={editing.id} unit={editing.unit} value={amount} onChange={setAmount} measures={editing.origin === 'supplement' ? null : foodById(editing.food_id)?.household_measures} />
             {amount ? (
               <T variant="small">{`${num(scalePer100(editing.per100_snapshot, amount).energy_kcal)} kcal · ${num(scalePer100(editing.per100_snapshot, amount).protein_g, 1)} g de proteína`}</T>
             ) : null}

@@ -34,7 +34,7 @@ Sem credenciais, o app roda em **modo local**: dados apenas no aparelho, busca n
 ## Qualidade
 
 ```bash
-npm run check        # tipos + lint + 254 testes unitários (inclui os 15 cenários obrigatórios)
+npm run check        # tipos + lint + 256 testes unitários (inclui os 15 cenários obrigatórios)
 npm run test:db      # migrações e RLS em PostgreSQL real
 npm run test:e2e     # fluxo completo na versão web (Playwright/Chromium)
 ```

@@ -5,27 +5,32 @@ import { formatCompounds } from '../../domain/compounds';
 import { buildEntry, buildSupplementEntry } from '../../domain/entries';
 import { NUTRIENT_KEYS, NUTRIENT_LABELS, scalePer100 } from '../../domain/nutrients';
 import { foodTags } from '../../domain/foodTags';
-import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type MealType } from '../../domain/types';
+import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type Food, type MealType } from '../../domain/types';
 import { useStore } from '../../state/AppProvider';
 import { useAllFoods, useCollection, useToday } from '../../state/hooks';
-import { Badge, Button, Card, Chip, ChipSelect, Divider, Notice, NumberField, Row, Screen, T } from '../../ui/components';
+import { AmountField } from '../../ui/AmountField';
+import { Badge, Button, Card, ChipSelect, Divider, Loading, Notice, NumberField, Row, Screen, T } from '../../ui/components';
 import { confirmAction } from '../../ui/confirm';
 import { nutrient, num, SOURCE_LABEL, VERIFICATION_LABEL } from '../../ui/format';
 
 export default function FoodDetail() {
   const params = useLocalSearchParams<{ id: string; date?: string; meal?: MealType }>();
+  const { foods, loading } = useAllFoods();
+  const food = foods.find((f) => f.id === params.id);
+  if (!food) return loading ? <Loading /> : <Screen><Notice kind="error">Alimento não encontrado.</Notice></Screen>;
+  return <Detail key={food.id} food={food} params={params} />;
+}
+
+function Detail({ food, params }: { food: Food; params: { id: string; date?: string; meal?: MealType } }) {
   const router = useRouter();
   const store = useStore();
   const today = useToday();
-  const { foods } = useAllFoods();
   const favorites = useCollection<{ id: string; food_id: string }>('food_favorites');
-  const food = foods.find((f) => f.id === params.id);
   const [meal, setMeal] = useState<MealType>((params.meal as MealType) ?? 'breakfast');
-  const [amount, setAmount] = useState<number | null>(food?.serving_size ?? 100);
+  const [amount, setAmount] = useState<number | null>(food.household_measures[0]?.amount ?? food.serving_size ?? 100);
   const [doses, setDoses] = useState<number | null>(1);
-  const scaled = useMemo(() => (food && amount ? scalePer100(food.per100, amount) : null), [food, amount]);
+  const scaled = useMemo(() => (amount ? scalePer100(food.per100, amount) : null), [food, amount]);
 
-  if (!food) return <Screen><Notice kind="error">Alimento não encontrado.</Notice></Screen>;
   const fav = favorites.data.find((f) => f.food_id === food.id);
   const isSupplement = food.is_supplement && food.serving_size;
 
@@ -53,17 +58,7 @@ export default function FoodDetail() {
           <NumberField label={`Doses (1 dose = ${num(food.serving_size)} ${food.base_unit}${food.serving_label ? `, ${food.serving_label}` : ''})`} value={doses} onChange={(v) => { setDoses(v); if (v) setAmount(v * food.serving_size!); }} />
         ) : (
           <>
-            <NumberField label="Quantidade" suffix={food.base_unit} value={amount} onChange={setAmount} />
-            {food.household_measures.length ? (
-              <Row wrap>
-                {food.household_measures.map((m) =>
-                  [1, 2].map((mult) => (
-                    <Chip key={`${m.label}-${mult}`} label={`${mult === 1 ? m.label : `${mult} × ${m.label.replace(/^1 /, '')}`} (${num(m.amount * mult)} ${food.base_unit})${m.estimated ? ' ~' : ''}`} onPress={() => setAmount(m.amount * mult)} selected={amount === m.amount * mult} />
-                  )),
-                )}
-              </Row>
-            ) : null}
-            {food.household_measures.some((m) => m.estimated) ? <T variant="tiny">~ medida caseira estimada (a TACO não publica medidas caseiras). Ajuste em gramas se souber o peso.</T> : null}
+            <AmountField unit={food.base_unit} value={amount} onChange={setAmount} measures={food.household_measures} />
           </>
         )}
         {scaled ? (

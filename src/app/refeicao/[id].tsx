@@ -35,7 +35,7 @@ function Editor({ meal }: { meal: SavedMeal }) {
   const [error, setError] = useState<string | null>(null);
   const hits = useMemo(() => (q.trim().length >= 2 ? searchFoods(foods, q, 8) : []), [foods, q]);
   const totals = savedMealTotals({ items });
-  const measureOf = (it: SavedMealItem) => (it.food_id ? foods.find((f) => f.id === it.food_id)?.household_measures[0] ?? null : null);
+  const measuresOf = (it: SavedMealItem) => (it.food_id ? foods.find((f) => f.id === it.food_id)?.household_measures : null);
 
   const run = (fn: () => void) => {
     try {
@@ -68,7 +68,7 @@ function Editor({ meal }: { meal: SavedMeal }) {
               {it.source === 'ai_estimate' ? <Badge label="estimativa" tone="warning" /> : null}
               <Button small variant="ghost" icon="trash-outline" title="Remover" onPress={() => run(() => setItems((cur) => removeSavedItem(cur, i)))} />
             </Row>
-            <AmountField label="Quantidade" unit={it.unit} value={it.amount} measure={measureOf(it)} onChange={(v) => run(() => setItems((cur) => setSavedItemAmount(cur, i, v)))} />
+            <AmountField label="Quantidade" unit={it.unit} value={it.amount} measures={measuresOf(it)} onChange={(v) => run(() => setItems((cur) => setSavedItemAmount(cur, i, v)))} />
           </View>
         ))}
         <Field label="Adicionar item" value={q} onChangeText={setQ} placeholder="Busque um alimento" />
