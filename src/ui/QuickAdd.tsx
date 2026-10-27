@@ -31,6 +31,7 @@ export function QuickAddSheet({ visible, onClose }: { visible: boolean; onClose:
       <ListItem icon="search" title="Buscar alimento" subtitle="Base TACO, seus alimentos, favoritos e recentes" onPress={() => go({ pathname: '/adicionar', params: { date, meal: currentMeal() } })} />
       <ListItem icon="chatbubble-ellipses-outline" title="Descrever o que comi" subtitle='Ex.: "pão francês com dois ovos e café"' onPress={() => go({ pathname: '/adicionar', params: { date, meal: currentMeal(), tab: 'frase' } })} />
       <ListItem icon="bookmark-outline" title="Refeição salva" subtitle="Repetir uma refeição com um toque" onPress={() => go({ pathname: '/refeicoes', params: { date, meal: currentMeal() } })} />
+      <ListItem icon="camera-outline" title="Foto do prato com IA" subtitle="A IA analisa a foto; o app registra e cadastra o que faltar" onPress={() => go({ pathname: '/colar', params: { date, meal: currentMeal(), foto: '1' } })} />
       <ListItem icon="clipboard-outline" title="Colar do meu agente de IA" subtitle="Refeição ou rótulo no formato do app" onPress={() => go({ pathname: '/colar', params: { date, meal: currentMeal() } })} />
       <ListItem icon="barcode-outline" title="Código de barras" onPress={() => go({ pathname: '/adicionar', params: { date, meal: currentMeal(), tab: 'codigo' } })} />
       <ListItem icon="water-outline" iconColor={colors.water} title="Água ou bebida" onPress={() => go('/agua')} />

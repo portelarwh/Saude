@@ -59,3 +59,27 @@ REGRAS GERAIS
 - "base": "vendido", "preparado" (valores do produto pronto, ex.: com leite) ou "desconhecido". Sódio em mg.
 - "categoria_suplemento": whey_concentrado, whey_isolado, whey_hidrolisado, proteina_vegetal, creatina, colageno, barra_proteica, bebida_proteica, multivitaminico, vitamina_mineral, outro ou null.
 - "compostos_por_porcao": creatina, vitaminas, minerais, cafeína etc. Ex.: [{ "nome": "Vitamina B12", "quantidade": 2500, "unidade": "mcg" }]. Unidades: g, mg, mcg ou UI. Creatina não é proteína.
+
+## Foto do prato
+
+No Diário, toque em **Foto** na refeição (ou em + › Foto do prato com IA). O app copia a pergunta abaixo; envie junto com a foto para o Claude, ChatGPT ou Gemini e cole a resposta. Itens que estão na base usam os valores da base; os demais usam a estimativa da IA (marcada como estimativa) e podem ser cadastrados em Meus alimentos. Respostas em texto livre ("Arroz: ~100 g — 130 a 150 kcal") também são lidas, mas trazem só gramas e calorias.
+
+Analise a foto do meu prato (vou anexar) e estime o que comi. Responda SOMENTE com um bloco ```json neste formato, sem texto fora dele:
+```json
+{
+  "formato": "meu-equilibrio/v1",
+  "tipo": "refeicao",
+  "nome": "nome curto do prato, ex.: Frango com purê, arroz e feijão",
+  "refeicao": "almoco",
+  "itens": [
+    { "alimento": "arroz branco cozido", "quantidade_g": 100, "medida": "4 colheres de sopa",
+      "nutrientes_estimados": { "kcal": 128, "proteina_g": 2.5, "carboidrato_g": 28.1, "gordura_g": 0.2, "fibra_g": 1.6, "sodio_mg": 1 } }
+  ],
+  "observacoes": "o que pode mudar a estimativa (óleo, molho, queijo)"
+}
+```
+Regras:
+- Um item por alimento visível, com nome simples em português como na Tabela TACO ("feijão carioca cozido", "peito de frango desfiado", "purê de mandioca", "salada de alface e tomate").
+- "quantidade_g": UM número em gramas (ou ml para bebidas); se estiver em dúvida, use o meio da sua faixa. Em "medida", a medida caseira (ex.: "1 concha pequena").
+- "nutrientes_estimados": valores para a quantidade do item (não por 100 g): kcal, proteina_g, carboidrato_g, gordura_g, fibra_g e sodio_mg. Use ponto decimal. O que não souber = null.
+- Inclua óleo, azeite, molho ou queijo como itens próprios se aparecerem ou forem prováveis.

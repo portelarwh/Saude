@@ -4,5 +4,5 @@
  * que também atualiza app.json, package.json e a data de publicação.
  * Correção = último número (1.0.1); novidade = do meio (1.1.0).
  */
-export const APP_VERSION = '1.5.0';
+export const APP_VERSION = '1.6.0';
 export const APP_RELEASE_DATE = '2026-10-27';

@@ -111,7 +111,10 @@ export default function Diary() {
                   <T variant="h3">{MEAL_LABELS[meal]}</T>
                   {list.length ? <T variant="small">{`${num(t.values.energy_kcal)} kcal · ${num(t.values.protein_g, 1)} g proteína`}</T> : null}
                 </View>
-                <Button small icon="add" title="Adicionar" onPress={() => router.push({ pathname: '/adicionar', params: { date, meal } })} />
+                <Row>
+                  <Button small variant="secondary" icon="camera-outline" title="Foto" onPress={() => router.push({ pathname: '/colar', params: { date, meal, foto: '1' } })} />
+                  <Button small icon="add" title="Adicionar" onPress={() => router.push({ pathname: '/adicionar', params: { date, meal } })} />
+                </Row>
               </Row>
               {list.map((e) => (
                 <ListItem

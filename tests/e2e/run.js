@@ -533,6 +533,40 @@ async function flow() {
     await page.waitForTimeout(1000);
     if (!/3 unidades · 150 g/.test(await page.innerText('body'))) throw new Error('diário não mostra "3 unidades · 150 g"');
   });
+  await step('foto do prato: texto livre da IA no almoço, cadastrando o que falta', async () => {
+    await page.goto(BASE + '/alimentacao', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    // botão "Foto" do almoço (3ª refeição na ordem do diário)
+    const fotos = page.getByText('Foto', { exact: true });
+    await fotos.nth(2).click();
+    await page.waitForTimeout(800);
+    let body = await page.innerText('body');
+    if (!/Foto do prato · Almoço/.test(body)) throw new Error('painel da foto não abriu no almoço');
+    const resposta = [
+      'Aqui está uma estimativa das quantidades e do valor calórico dos alimentos visíveis no prato:',
+      ' * Frango desfiado com puré/mandioca (ou fricassé/escondidinho): ~150g a 180g — 250 a 300 kcal',
+      ' * Arroz (temperado/cenoura): ~100g (aprox. 3 a 4 colheres de sopa) — 130 a 150 kcal',
+      ' * Feijão (misturado ao arroz): ~60g (aprox. 1 concha pequena) — 45 a 60 kcal',
+      ' * Salada (tomate fatiado e repolho/alface): ~40g — 10 a 15 kcal',
+      'Total estimado: 435 a 525 kcal',
+    ].join('\n');
+    await fill('Resposta da IA', resposta);
+    await click('Interpretar');
+    await page.waitForTimeout(800);
+    body = await page.innerText('body');
+    if (!/Cadastrar 2 item\(ns\) sem cadastro em Meus alimentos/.test(body)) throw new Error('itens sem cadastro não identificados: ' + body.slice(0, 300));
+    await shot('21-foto-prato');
+    await click('Salvar e registrar agora');
+    await page.waitForTimeout(1000);
+    if (!/2 item\(ns\) cadastrado\(s\) em Meus alimentos/.test(await page.innerText('body'))) throw new Error('itens não cadastrados');
+    await page.goto(BASE + '/meus-alimentos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    body = await page.innerText('body');
+    if (!/Frango desfiado com puré\/mandioca/.test(body) || !/#estimativa/.test(body)) throw new Error('alimento estimado não aparece em Meus alimentos');
+    await page.goto(BASE + '/alimentacao', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    if (!/Frango desfiado com puré\/mandioca/.test(await page.innerText('body'))) throw new Error('prato não registrado no diário');
+  });
   await step('editar refeição salva e meus alimentos', async () => {
     await page.goto(BASE + '/refeicoes', { waitUntil: 'networkidle' });
     await page.waitForTimeout(800);

@@ -9,14 +9,16 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { AGENT_INSTRUCTIONS, agentLabelToLabelData, parseAgentPaste, reviewAgentMeal, reviewToSavedMeal, type AgentDocument, type MealReview, type ReviewItem } from '../domain/agentFormat';
 import { normalizeLabel } from '../domain/labels';
+import { estimatedItemsToFoods, parsePlainMealText, photoMealPrompt } from '../domain/photoMeal';
 import { scalePer100, sumNutrients } from '../domain/nutrients';
 import { savedMealToEntries } from '../domain/savedMeals';
-import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type MealType, type SavedMeal } from '../domain/types';
+import { MEAL_LABELS, MEAL_ORDER, type DiaryEntry, type Food, type MealType, type SavedMeal } from '../domain/types';
 import { newId } from '../services/ids';
 import { useStore } from '../state/AppProvider';
 import { putDraft } from '../state/drafts';
 import { useAllFoods, useToday } from '../state/hooks';
-import { Badge, Button, Card, Chip, ChipSelect, Field, Notice, NumberField, Row, Screen, T } from '../ui/components';
+import { Badge, Button, Card, Chip, ChipSelect, Field, Notice, NumberField, Row, Screen, T, Toggle } from '../ui/components';
+import { ExternalAiPanel } from '../ui/ExternalAi';
 import { num, SOURCE_LABEL } from '../ui/format';
 import { currentMeal } from '../ui/QuickAdd';
 import { spacing, useTheme } from '../ui/theme';
@@ -24,7 +26,7 @@ import { spacing, useTheme } from '../ui/theme';
 type Result = { key: string; doc: AgentDocument; review?: MealReview; saved?: boolean };
 
 export default function PasteFromAgent() {
-  const params = useLocalSearchParams<{ date?: string; meal?: MealType }>();
+  const params = useLocalSearchParams<{ date?: string; meal?: MealType; foto?: string }>();
   const router = useRouter();
   const { foods } = useAllFoods();
   const [text, setText] = useState('');
@@ -33,15 +35,22 @@ export default function PasteFromAgent() {
   const [showFormat, setShowFormat] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const read = () => {
+  const read = (raw = text) => {
     setError(null);
+    let docs: AgentDocument[];
     try {
-      const docs = parseAgentPaste(text);
-      setResults(docs.map((doc, i) => ({ key: `${Date.now()}-${i}`, doc, review: doc.kind === 'meal' ? reviewAgentMeal(doc.meal, foods) : undefined })));
+      docs = parseAgentPaste(raw);
     } catch (e) {
-      setResults([]);
-      setError((e as Error).message);
+      // resposta em texto livre (ex.: análise da foto sem o bloco JSON)
+      const plain = parsePlainMealText(raw, params.meal ?? null);
+      if (!plain) {
+        setResults([]);
+        setError((e as Error).message);
+        throw e;
+      }
+      docs = [{ kind: 'meal', meal: plain }];
     }
+    setResults(docs.map((doc, i) => ({ key: `${Date.now()}-${i}`, doc, review: doc.kind === 'meal' ? reviewAgentMeal(doc.meal, foods) : undefined })));
   };
 
   const copyInstructions = async () => {
@@ -59,6 +68,21 @@ export default function PasteFromAgent() {
 
   return (
     <Screen>
+      {params.foto ? (
+        <ExternalAiPanel
+          defaultOpen
+          title={`Foto do prato${params.meal ? ` · ${MEAL_LABELS[params.meal]}` : ''}`}
+          description="Abra a IA, anexe a foto do prato e envie a pergunta (já copiada). Copie a resposta inteira e cole aqui: itens que estão na base usam os valores da base; o resto usa a estimativa da IA, marcada como estimativa."
+          attachHint="Anexe a foto do prato antes de enviar."
+          getPrompt={() => photoMealPrompt(params.meal ?? null)}
+          onAnswer={(t) => {
+            setText(t);
+            read(t);
+          }}
+        />
+      ) : null}
+      {!params.foto ? (
+        <>
       <Card>
         <T variant="h3">Formato para o seu agente</T>
         <T variant="small">
@@ -83,8 +107,10 @@ export default function PasteFromAgent() {
             if (t) setText(t);
           }}
         />
-        <Button small icon="sparkles-outline" title="Ler" onPress={read} disabled={text.trim().length < 2} />
+        <Button small icon="sparkles-outline" title="Ler" onPress={() => { try { read(); } catch { /* erro já exibido */ } }} disabled={text.trim().length < 2} />
       </Row>
+        </>
+      ) : null}
       {error ? <Notice kind="error">{error}</Notice> : null}
 
       {results.map((r) => {
@@ -105,6 +131,7 @@ export default function PasteFromAgent() {
         return (
           <MealReviewCard
             key={r.key}
+            foods={foods}
             review={r.review!}
             saved={Boolean(r.saved)}
             foodsDate={params.date}
@@ -126,7 +153,8 @@ function itemNutrients(item: ReviewItem) {
   return scalePer100(per100, item.amount);
 }
 
-function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSaved }: {
+function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSaved, foods }: {
+  foods: Food[];
   review: MealReview;
   saved: boolean;
   foodsDate?: string;
@@ -140,6 +168,8 @@ function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSav
   const [meal, setMeal] = useState<MealType>(defaultMeal ?? review.meal ?? currentMeal());
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [registerItems, setRegisterItems] = useState(true);
+  const toRegister = estimatedItemsToFoods(review, foods);
 
   const update = (i: number, patch: Partial<ReviewItem>) => onChange({ ...review, items: review.items.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
   const totals = sumNutrients(review.items.map(itemNutrients).filter((n): n is NonNullable<typeof n> => Boolean(n)));
@@ -147,12 +177,22 @@ function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSav
   const save = async (alsoLog: boolean) => {
     setError(null);
     try {
-      const row = reviewToSavedMeal({ ...review, meal });
+      // itens sem cadastro viram alimentos (estimativa) e a refeição passa a apontar para eles
+      let final = review;
+      if (registerItems && toRegister.length) {
+        const created = await store.insertMany<Food>('foods', toRegister.map((t) => ({ ...t.food, id: `user:${newId()}` })));
+        final = { ...review, items: review.items.map((it, i) => {
+          const k = toRegister.findIndex((t) => t.index === i);
+          return k >= 0 ? { ...it, choice: { kind: 'food' as const, food: created[k] } } : it;
+        }) };
+      }
+      const row = reviewToSavedMeal({ ...final, meal });
       await store.insert<SavedMeal>('saved_meals', row);
       if (alsoLog) {
         await store.insertMany<DiaryEntry>('diary_entries', savedMealToEntries(row, { date: foodsDate ?? today, meal, consumed_at: new Date().toISOString(), groupId: newId() }));
       }
-      setDone(alsoLog ? 'Refeição salva e registrada no diário.' : 'Refeição salva. Use em Alimentação › Refeições salvas.');
+      const extra = registerItems && toRegister.length ? ` ${toRegister.length} item(ns) cadastrado(s) em Meus alimentos como estimativa.` : '';
+      setDone((alsoLog ? 'Refeição salva e registrada no diário.' : 'Refeição salva. Use em Alimentação › Refeições salvas.') + extra);
       onSaved();
     } catch (e) {
       setError((e as Error).message);
@@ -193,6 +233,15 @@ function MealReviewCard({ review, saved, foodsDate, defaultMeal, onChange, onSav
       <Notice kind="info" title="Total">
         {`${num(totals.values.energy_kcal)} kcal · ${num(totals.values.protein_g, 1)} g proteína · ${num(totals.values.carbs_g, 1)} g carbo · ${num(totals.values.fat_g, 1)} g gordura · ${num(totals.values.fiber_g, 1)} g fibras`}
       </Notice>
+      {review.notes ? <T variant="tiny">{review.notes}</T> : null}
+      {!saved && toRegister.length ? (
+        <Toggle
+          label={`Cadastrar ${toRegister.length} item(ns) sem cadastro em Meus alimentos`}
+          description={`${toRegister.map((t) => t.food.name).join(', ')} — com os valores estimados pela IA, marcados como estimativa. Na próxima vez, a busca já encontra.`}
+          value={registerItems}
+          onChange={setRegisterItems}
+        />
+      ) : null}
       {error ? <Notice kind="error">{error}</Notice> : null}
       {done ? <Notice kind="success">{done}</Notice> : null}
       {!saved ? (
